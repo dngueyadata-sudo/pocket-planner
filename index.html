@@ -117,10 +117,18 @@ body.auth .card { border: 0; }
 <script>
 var API = 'https://txrfewxihlqrpoatelvn.supabase.co/functions/v1/app';
 var TOKEN = localStorage.getItem('pp_token') || '';
-var S = null, COACH = null, TAB = 'home', AUTHMODE = 'login';
+var S = null, COACH = null, TAB = 'home', AUTHMODE = 'login', AUTHROLE = null, INVITECOACH = false;
 var QL = { kind: 'spend', cat: 'Groceries' };
 var COACHFILTER = 'all', COACHSEARCH = '';
 var IMPORT = null; // parsed import staging
+var MEMBER = 'Pathfinder', MEMBER_PL = 'Pathfinders';
+var APP_URL = location.origin + location.pathname.replace(/\/?$/, '/');
+var PREFILL = { coach_code: '', role: null };
+(function () {
+  var p = new URLSearchParams(location.search);
+  if (p.get('join')) { PREFILL.coach_code = p.get('join').toUpperCase(); PREFILL.role = 'member'; }
+  if (p.get('becoach') === '1' || p.get('coach') === '1') PREFILL.role = 'coach';
+})();
 
 var ALL_SPEND = ['Groceries','Eating Out','Coffee','Gas','Auto','Rideshare','Rent/Mortgage','Utilities','Phone','Internet','Subscriptions','Insurance','Kids','Childcare','School','Medical','Pharmacy','Personal Care','Clothing','Household','Home Improvement','Entertainment','Travel','Gifts','Pets','Fitness','Giving','Fees','Cash/ATM','Other'];
 var COMMON_SPEND = ['Groceries','Eating Out','Gas','Kids','Household','Entertainment','Coffee','Medical','Other'];
@@ -209,37 +217,91 @@ function oops(e) { toast(e.message || 'Something went wrong'); }
 
 function load() {
   return api('state').then(function (d) {
-    S = d; document.body.classList.remove('auth');
+    S = d; document.body.classList.remove('auth'); document.body.classList.remove('flow');
+    if (d.user.role === 'coach') { if (TAB !== 'team' && TAB !== 'more') TAB = 'team'; renderShell(); render(); return; }
     var step = d.settings ? Number(d.settings.onboard_step) : 0;
-    if (d.user.role === 'member' && step >= 2 && step <= 8) { document.body.classList.add('flow'); q('tabbar').classList.add('hidden'); renderWizard(); return; }
-    document.body.classList.remove('flow'); renderShell(); render();
+    if (step >= 2 && step <= 8) { document.body.classList.add('flow'); q('tabbar').classList.add('hidden'); renderWizard(); return; }
+    if (TAB === 'team') TAB = 'home';
+    renderShell(); render();
   }).catch(function (e) { if (e.status === 401) { setToken(''); renderAuth(); } else { oops(e); } });
 }
 
 /* ---------------- AUTH ---------------- */
+function authWrap(inner, foot) {
+  var h = '<div class="wrap"><div class="auth-hero"><div class="brand">Pocket <span class="accent">Planner</span></div><div class="tag">Get your financial freedom back.</div></div>';
+  h += '<div class="card">' + inner + '</div>';
+  h += '<p class="auth-foot">' + (foot || 'Private and secure. You choose what to share.') + ' A personal tool by <span class="by">RAIS Advisory</span>.</p></div>';
+  q('view').innerHTML = h;
+}
 function renderAuth() {
   document.body.classList.add('auth'); document.body.classList.remove('flow');
   q('tabbar').classList.add('hidden');
-  var h = '<div class="wrap"><div class="auth-hero"><div class="brand">Pocket <span class="accent">Planner</span></div><div class="tag">Your money, one paycheck at a time.</div></div><div class="card">';
   if (AUTHMODE === 'login') {
-    h += '<h2>Sign in</h2><span class="label">Username</span><input id="a_user" autocapitalize="none" autocomplete="username">';
-    h += '<span class="label">PIN</span><input id="a_pin" type="password" inputmode="numeric" autocomplete="current-password">';
-    h += '<button class="btn" id="a_go">Sign in</button><p class="muted mt center">New here? <button class="link" id="a_switch">Create your account</button></p>';
-  } else {
-    h += '<h2>Create account</h2><span class="label">Invite code</span><input id="s_invite" autocapitalize="characters" placeholder="From your coach">';
-    h += '<span class="label">First name</span><input id="s_name"><span class="label">Pick a username</span><input id="s_user" autocapitalize="none">';
-    h += '<span class="label">Pick a PIN (4-8 digits)</span><input id="s_pin" type="password" inputmode="numeric">';
-    h += '<button class="btn" id="s_go">Create account</button><p class="muted mt center"><button class="link" id="a_switch">Back to sign in</button></p>';
-  }
-  h += '</div><p class="auth-foot">Private and secure. You choose what to share. A personal tool by <span class="by">RAIS Advisory</span>.</p></div>';
-  q('view').innerHTML = h;
-  q('a_switch').onclick = function () { AUTHMODE = AUTHMODE === 'login' ? 'signup' : 'login'; renderAuth(); };
-  if (AUTHMODE === 'login') {
+    var l = '<h2>Sign in</h2><span class="label">Username</span><input id="a_user" autocapitalize="none" autocomplete="username">';
+    l += '<span class="label">PIN</span><input id="a_pin" type="password" inputmode="numeric" autocomplete="current-password">';
+    l += '<button class="btn" id="a_go">Sign in</button><p class="muted mt center">New here? <button class="link" id="a_switch">Create your account</button></p>';
+    authWrap(l);
+    q('a_switch').onclick = function () { AUTHMODE = 'signup'; AUTHROLE = PREFILL.role; renderAuth(); };
     q('a_go').onclick = function () { api('login', 'POST', { username: val('a_user'), pin: val('a_pin') }).then(function (d) { setToken(d.token); load(); }).catch(oops); };
     q('a_pin').addEventListener('keydown', function (e) { if (e.key === 'Enter') q('a_go').click(); });
-  } else {
-    q('s_go').onclick = function () { api('signup', 'POST', { invite: val('s_invite'), display_name: val('s_name'), username: val('s_user'), pin: val('s_pin') }).then(function (d) { setToken(d.token); toast('Welcome, ' + d.user.display_name + '!'); load(); }).catch(oops); };
+    return;
   }
+  // signup: pick role first
+  if (!AUTHROLE) {
+    var r = '<h2>Create your account</h2><p class="muted">Which one are you?</p>';
+    r += '<button class="btn" id="r_member">I\'m getting my finances back on track</button>';
+    r += '<button class="btn ghost" id="r_coach">I\'m a coach</button>';
+    r += '<p class="muted mt center"><button class="link" id="a_switch">I already have an account</button></p>';
+    authWrap(r);
+    q('r_member').onclick = function () { AUTHROLE = 'member'; renderAuth(); };
+    q('r_coach').onclick = function () { AUTHROLE = 'coach'; renderAuth(); };
+    q('a_switch').onclick = function () { AUTHMODE = 'login'; renderAuth(); };
+    return;
+  }
+  if (AUTHROLE === 'coach') {
+    var c = '<h2>Coach account</h2><p class="muted">Coaches guide ' + MEMBER_PL + ' and see only the Coach Hub. You\'ll get a code to invite your ' + MEMBER_PL + '.</p>';
+    c += '<span class="label">Coach access code</span><input id="s_master" autocapitalize="characters" placeholder="From RAIS Advisory">';
+    c += '<span class="label">First name</span><input id="s_name"><span class="label">Pick a username</span><input id="s_user" autocapitalize="none">';
+    c += '<span class="label">Pick a PIN (4-8 digits)</span><input id="s_pin" type="password" inputmode="numeric">';
+    c += '<button class="btn" id="s_go">Create coach account</button><p class="muted mt center"><button class="link" id="a_back">Back</button></p>';
+    authWrap(c, 'Coaches only see the hub — never a ' + MEMBER + '\'s individual purchases unless they share them.');
+    q('a_back').onclick = function () { AUTHROLE = null; renderAuth(); };
+    q('s_go').onclick = function () {
+      api('signup', 'POST', { role: 'coach', master: val('s_master'), display_name: val('s_name'), username: val('s_user'), pin: val('s_pin') })
+        .then(function (d) { setToken(d.token); TAB = 'team'; toast('Welcome, coach ' + d.user.display_name + '!'); load(); }).catch(oops);
+    };
+    return;
+  }
+  // member (Pathfinder)
+  var m = '<h2>Start your comeback</h2><p class="muted">You start with a coach in your corner. Enter your coach\'s code — or invite someone to be your coach.</p>';
+  m += '<span class="label">Coach code</span><input id="s_coach" autocapitalize="characters" placeholder="From your coach" value="' + esc(PREFILL.coach_code || '') + '"><div id="s_codemsg" class="muted" style="margin-top:4px"></div>';
+  m += '<p class="mt"><button class="link" id="s_invitecoach">I don\'t have a coach yet — invite one</button></p>';
+  m += '<div id="s_invitebox" class="' + (INVITECOACH ? '' : 'hidden') + '">' + inviteCoachBox() + '</div>';
+  m += '<span class="label">First name</span><input id="s_name"><span class="label">Pick a username</span><input id="s_user" autocapitalize="none">';
+  m += '<span class="label">Pick a PIN (4-8 digits)</span><input id="s_pin" type="password" inputmode="numeric">';
+  m += '<button class="btn" id="s_go">Create my account</button><p class="muted mt center"><button class="link" id="a_back">Back</button></p>';
+  authWrap(m, 'A coach is required to start — it\'s how you stay accountable.');
+  q('a_back').onclick = function () { AUTHROLE = null; INVITECOACH = false; renderAuth(); };
+  q('s_invitecoach').onclick = function () { INVITECOACH = !INVITECOACH; renderAuth(); };
+  var codeChk = q('s_coach');
+  codeChk.addEventListener('blur', function () {
+    var code = codeChk.value.trim().toUpperCase(); var box = q('s_codemsg');
+    if (!code) { box.innerHTML = ''; return; }
+    api('checkcode?code=' + encodeURIComponent(code)).then(function (r) {
+      box.innerHTML = r.valid ? '<span class="good">✓ Coach: ' + esc(r.coach_name) + '</span>' : '<span class="warn">We couldn\'t find that coach code.</span>';
+    }).catch(function () {});
+  });
+  if (q('s_copyinvite')) q('s_copyinvite').onclick = function () { fallbackCopy(inviteCoachText()); };
+  q('s_go').onclick = function () {
+    api('signup', 'POST', { role: 'member', coach_code: val('s_coach'), display_name: val('s_name'), username: val('s_user'), pin: val('s_pin') })
+      .then(function (d) { setToken(d.token); toast('Welcome, ' + d.user.display_name + '!'); load(); }).catch(oops);
+  };
+}
+function inviteCoachText() {
+  return 'Will you be my money coach? I\'m using Pocket Planner to get my finances back on track, and I need a coach to start. Create a free coach account here: ' + APP_URL + '?becoach=1 — then send me your coach code so I can join you. (You\'ll need a coach access code from RAIS Advisory: hello@raisadvisory.com)';
+}
+function inviteCoachBox() {
+  return '<div class="card" style="background:var(--gold-dim);border:0;margin:10px 0"><h3>Invite a coach</h3><p class="muted">Send this to a friend, family member, or advisor you trust. Once they set up as a coach, they\'ll give you a code to enter above.</p><textarea readonly style="min-height:120px;font-size:13px">' + esc(inviteCoachText()) + '</textarea><button class="btn ghost" id="s_copyinvite">Copy invite</button></div>';
 }
 
 /* ---------------- ONBOARDING WIZARD ---------------- */
@@ -622,9 +684,9 @@ function renderGoalsInner(step) {
 
 /* ---------------- MAIN SHELL ---------------- */
 function renderShell() {
-  var tabs = [{ t: 'home', ic: IC.home, n: 'Home' }, { t: 'plan', ic: IC.plan, n: 'Plan' }, { t: 'debts', ic: IC.debts, n: 'Debts' }, { t: 'goals', ic: IC.goals, n: 'Goals' }];
-  if (S.user.role === 'coach') tabs.push({ t: 'team', ic: IC.team, n: 'Coach' });
-  tabs.push({ t: 'more', ic: IC.more, n: 'More' });
+  var tabs;
+  if (S.user.role === 'coach') { tabs = [{ t: 'team', ic: IC.team, n: 'Hub' }, { t: 'more', ic: IC.more, n: 'More' }]; }
+  else { tabs = [{ t: 'home', ic: IC.home, n: 'Home' }, { t: 'plan', ic: IC.plan, n: 'Plan' }, { t: 'debts', ic: IC.debts, n: 'Debts' }, { t: 'goals', ic: IC.goals, n: 'Goals' }, { t: 'more', ic: IC.more, n: 'More' }]; }
   var h = '';
   tabs.forEach(function (t) { h += '<div class="tab' + (TAB === t.t ? ' on' : '') + '" data-t="' + t.t + '">' + t.ic + t.n + '</div>'; });
   var bar = q('tabbar'); bar.innerHTML = h; bar.classList.remove('hidden');
@@ -639,7 +701,7 @@ function render() {
   else renderMore();
   window.scrollTo(0, 0);
 }
-function topbar() { return '<div class="topbar"><span class="brand">Pocket <span class="accent">Planner</span></span><span class="pill">' + IC.flame + S.streak + ' day' + (S.streak === 1 ? '' : 's') + '</span></div>'; }
+function topbar() { var pill = (typeof S.streak === 'number') ? '<span class="pill">' + IC.flame + S.streak + ' day' + (S.streak === 1 ? '' : 's') + '</span>' : '<span class="pill">Coach</span>'; return '<div class="topbar"><span class="brand">Pocket <span class="accent">Planner</span></span>' + pill + '</div>'; }
 
 /* ---------------- HOME ---------------- */
 function renderHome() {
@@ -781,15 +843,19 @@ function renderCoach() {
   if (!COACH) { h += '<div class="card muted">Loading dashboard…</div></div>'; q('view').innerHTML = h; loadCoach(); return; }
   var k = COACH.kpi; var ms = COACH.members;
   var avgStreak = k.members ? (k.streak_sum / k.members) : 0;
+  var code = COACH.invite_code || '';
+  var joinLink = APP_URL + '?join=' + code;
+  h += '<div class="card" style="background:var(--gold-dim);border:0"><div class="spread"><span class="muted" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600;font-size:11px">Your ' + MEMBER + ' invite code</span></div><div class="serifnum" style="font-size:30px;letter-spacing:3px">' + esc(code) + '</div><p class="muted" style="margin-top:2px">Share this code (or the link) so ' + MEMBER_PL + ' can join you.</p><button class="btn ghost small" id="c_copycode">Copy invite link</button></div>';
   h += '<div class="kpis">';
-  h += kpiTile(k.members, 'Members');
+  h += kpiTile(k.members, MEMBER_PL);
   h += kpiTile(fmt0(k.debt_total), 'Debt left');
   h += kpiTile(fmt0(k.paid_down), 'Paid down');
   h += kpiTile(avgStreak.toFixed(0), 'Avg streak');
   h += kpiTile(k.needs_attention, 'Need attention');
   h += kpiTile(fmt0(k.saved), 'Saved');
   h += '</div>';
-  if (k.sharing_detail < k.members) h += '<p class="muted center" style="margin:-6px 0 12px">Dollar figures reflect the ' + k.sharing_detail + ' of ' + k.members + ' members sharing details. Others share streaks only.</p>';
+  if (!ms.length) h += '<div class="card muted">No ' + MEMBER_PL + ' yet. Share your invite code above to get started.</div>';
+  if (k.sharing_detail < k.members) h += '<p class="muted center" style="margin:-6px 0 12px">Dollar figures reflect the ' + k.sharing_detail + ' of ' + k.members + ' ' + MEMBER_PL + ' sharing details. Others share streaks only.</p>';
 
   // flags
   var flagged = ms.filter(function (m) { return m.flags && m.flags.length; });
@@ -801,7 +867,7 @@ function renderCoach() {
 
   // filters
   h += '<div class="card"><div class="seg"><button data-cf="all" class="' + (COACHFILTER === 'all' ? 'on' : '') + '">All (' + ms.length + ')</button><button data-cf="attention" class="' + (COACHFILTER === 'attention' ? 'on' : '') + '">Needs attention (' + flagged.length + ')</button><button data-cf="ontrack" class="' + (COACHFILTER === 'ontrack' ? 'on' : '') + '">On track (' + (ms.length - flagged.length) + ')</button></div>';
-  h += '<input id="c_search" placeholder="Search members…" value="' + esc(COACHSEARCH) + '"><button class="btn ghost mt" id="c_digest">Copy weekly digest</button></div>';
+  h += '<input id="c_search" placeholder="Search ' + MEMBER_PL + '…" value="' + esc(COACHSEARCH) + '"><button class="btn ghost mt" id="c_digest">Copy weekly digest</button></div>';
 
   var shown = ms.filter(function (m) {
     if (COACHFILTER === 'attention' && !(m.flags && m.flags.length)) return false;
@@ -809,10 +875,11 @@ function renderCoach() {
     if (COACHSEARCH && m.display_name.toLowerCase().indexOf(COACHSEARCH.toLowerCase()) === -1) return false;
     return true;
   });
-  if (!shown.length) h += '<div class="card muted">No members match.</div>';
+  if (ms.length && !shown.length) h += '<div class="card muted">No ' + MEMBER_PL + ' match.</div>';
   shown.forEach(function (m) { h += coachCard(m); });
   h += '</div>'; q('view').innerHTML = h;
 
+  if (q('c_copycode')) q('c_copycode').onclick = function () { fallbackCopy('Join me on Pocket Planner to get your finances back on track: ' + joinLink); };
   q('c_refresh').onclick = loadCoach;
   q('c_digest').onclick = function () { copyDigest(); };
   q('c_search').oninput = function () { COACHSEARCH = this.value; var pos = this.selectionStart; renderCoach(); var s = q('c_search'); if (s) { s.focus(); s.setSelectionRange(pos, pos); } };
@@ -851,7 +918,7 @@ function loadCoach() { api('coach').then(function (d) { COACH = d; if (TAB === '
 function copyDigest() {
   if (!COACH) return; var k = COACH.kpi;
   var lines = ['Pocket Planner — Weekly Coach Digest (' + COACH.today + ')', ''];
-  lines.push('Members: ' + k.members + ' | Debt left: ' + fmt0(k.debt_total) + ' | Paid down: ' + fmt0(k.paid_down) + ' | Saved: ' + fmt0(k.saved) + ' | Need attention: ' + k.needs_attention, '');
+  lines.push(MEMBER_PL + ': ' + k.members + ' | Debt left: ' + fmt0(k.debt_total) + ' | Paid down: ' + fmt0(k.paid_down) + ' | Saved: ' + fmt0(k.saved) + ' | Need attention: ' + k.needs_attention, '');
   COACH.members.forEach(function (m) {
     lines.push('• ' + m.display_name + ' (' + m.share_tier + ')');
     lines.push('   streak ' + m.streak + 'd, debt ' + (m.debt_paid_pct || 0).toFixed(0) + '% paid' + (m.debt_total !== undefined ? ' (' + fmt0(m.debt_total) + ' left)' : ''));
@@ -862,30 +929,33 @@ function copyDigest() {
   if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast('Digest copied to clipboard'); }, function () { fallbackCopy(text); });
   else fallbackCopy(text);
 }
-function fallbackCopy(text) { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Digest copied'); } catch (e) { toast('Copy not supported'); } document.body.removeChild(ta); }
+function fallbackCopy(text) { if (navigator.clipboard) { navigator.clipboard.writeText(text).then(function () { toast('Copied to clipboard'); }, function () {}); return; } var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Copied to clipboard'); } catch (e) { toast('Copy not supported'); } document.body.removeChild(ta); }
 
 /* ---------------- MORE ---------------- */
 function renderMore() {
   var h = '<div class="wrap">' + topbar();
-  h += '<div class="card"><h2>' + esc(S.user.display_name) + '</h2><p class="muted">@' + esc(S.user.username) + ' · ' + (S.user.role === 'coach' ? 'Coach' : 'Member') + '</p></div>';
+  h += '<div class="card"><h2>' + esc(S.user.display_name) + '</h2><p class="muted">@' + esc(S.user.username) + ' · ' + (S.user.role === 'coach' ? 'Coach' : MEMBER) + '</p></div>';
   if (S.user.role !== 'coach') {
     h += '<div class="card"><h2>What your coach can see</h2><p class="muted">You\'re in control. Change it any time.</p>';
     [['full', 'Everything', 'Progress, budgets, and individual purchases.'], ['summary', 'Summary only', 'Totals and progress — never individual purchases.'], ['streaks', 'Streaks only', 'Just your logging streak and debt progress %.']].forEach(function (t) { h += '<label class="radio"><input type="radio" name="tier" value="' + t[0] + '"' + (S.user.share_tier === t[0] ? ' checked' : '') + '><span><b>' + t[1] + '</b><br><span class="muted">' + t[2] + '</span></span></label>'; });
     h += '</div>';
     h += '<div class="card"><h2>Redo my setup</h2><p class="muted">Walk through goals, import, budget and plan again.</p><button class="btn ghost" id="m_redo">Restart setup</button></div>';
-  } else if (S.codes) {
-    h += '<div class="card"><h2>Invite your team</h2><p class="muted">Send them this link and the member code:</p><div class="mt"><span class="pill" style="font-size:15px">' + esc(S.codes.member_invite_code) + '</span></div><p class="muted mt">Coach code (keep private): <b>' + esc(S.codes.coach_invite_code) + '</b></p></div>';
+  } else {
+    var code = S.user.invite_code || '';
+    h += '<div class="card"><h2>Invite your ' + MEMBER_PL + '</h2><p class="muted">Share this code or link so ' + MEMBER_PL + ' can join you:</p><div class="mt"><span class="pill" style="font-size:16px;letter-spacing:2px">' + esc(code) + '</span></div><button class="btn ghost mt" id="m_copylink">Copy invite link</button></div>';
   }
   h += '<div class="card"><h2>Ground rules</h2><p class="muted">Manual entry and statement import only — never enter bank logins or card numbers here.<br>This is a planning tool, not professional financial advice.</p></div>';
   h += '<button class="btn ghost" id="m_logout">Sign out</button><p class="muted center mt">A personal tool by RAIS Advisory</p></div>';
   q('view').innerHTML = h;
   Array.prototype.forEach.call(document.querySelectorAll('input[name=tier]'), function (el) { el.onchange = function () { api('share', 'PUT', { share_tier: el.value }).then(function () { S.user.share_tier = el.value; toast('Sharing updated'); }).catch(oops); }; });
   if (q('m_redo')) q('m_redo').onclick = function () { setStep(2, function () { document.body.classList.add('flow'); q('tabbar').classList.add('hidden'); load(); }); };
-  q('m_logout').onclick = function () { api('logout', 'POST').catch(function () {}).then(function () { setToken(''); S = null; COACH = null; TAB = 'home'; renderAuth(); }); };
+  if (q('m_copylink')) q('m_copylink').onclick = function () { fallbackCopy('Join me on Pocket Planner to get your finances back on track: ' + APP_URL + '?join=' + (S.user.invite_code || '')); };
+  q('m_logout').onclick = function () { api('logout', 'POST').catch(function () {}).then(function () { setToken(''); S = null; COACH = null; TAB = 'home'; AUTHMODE = 'login'; AUTHROLE = null; renderAuth(); }); };
 }
 
 /* ---------------- INIT ---------------- */
-if (TOKEN) load(); else renderAuth();
+if (TOKEN) { load(); }
+else { if (PREFILL.role) { AUTHMODE = 'signup'; AUTHROLE = PREFILL.role; } renderAuth(); }
 </script>
 </body>
 </html>
