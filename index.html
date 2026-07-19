@@ -264,6 +264,7 @@ function renderWizard() {
     var g = '<h2>Let\'s understand your money</h2><p class="muted">A few honest answers. There are no wrong ones — this is just for you.</p>';
     g += '<span class="label">What are you most trying to do?</span><select id="w_goal">' + GOAL_OPTS.map(function (o) { return '<option' + (st.primary_goal === o ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>';
     g += '<span class="label">Roughly, your take-home pay each month</span><input id="w_income" type="number" inputmode="decimal" value="' + (Number(st.income_monthly) || '') + '" placeholder="e.g. 4500">';
+    g += '<div class="row"><div><span class="label">Take-home per paycheck</span><input id="w_pay" type="number" inputmode="decimal" value="' + (Number(st.pay_amount) || '') + '" placeholder="e.g. 2250"></div><div><span class="label">Next payday</span><input id="w_payday" type="date" value="' + (st.next_payday || '') + '"></div></div>';
     g += '<span class="label">Be honest — what do you THINK you spend a month (outside of rent & bills)?</span><input id="w_guess" type="number" inputmode="decimal" value="' + (Number(st.guess_spend) || '') + '" placeholder="Your gut guess">';
     g += '<p class="muted" style="margin-top:4px">We\'ll compare this to what your statements actually show. That gap is where the magic is.</p>';
     g += '<span class="label">What trips you up most? (optional)</span><textarea id="w_notes" placeholder="Impulse buys, eating out, subscriptions…">' + esc(st.spending_notes || '') + '</textarea>';
@@ -271,6 +272,7 @@ function renderWizard() {
     wizShell(step, g);
     q('w_next').onclick = function () {
       api('profile', 'PUT', { primary_goal: val('w_goal'), income_monthly: parseFloat(val('w_income')) || 0, guess_spend: parseFloat(val('w_guess')) || 0, spending_notes: val('w_notes'), onboard_step: 3 })
+        .then(function () { return api('settings', 'PUT', { pay_amount: parseFloat(val('w_pay')) || 0, next_payday: val('w_payday') }); })
         .then(function () { return load(); }).catch(oops);
     };
   } else if (step === 3) {
