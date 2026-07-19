@@ -15,26 +15,19 @@
 <title>Pocket Planner</title>
 <style>
 :root {
-  --bg: #F7F5F1;
-  --card: #FFFFFF;
-  --ink: #0A0F1C;
-  --sub: #6E7684;
-  --line: #E8E3DA;
-  --track: #EDE7DC;
-  --gold: #C9993A;
-  --gold-lt: #DDB96A;
-  --gold-dim: rgba(201, 153, 58, 0.14);
-  --good: #2E7D5B;
-  --warn: #B4483E;
-  --serif: 'DM Serif Display', Georgia, serif;
-  --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --bg: #F7F5F1; --card: #FFFFFF; --ink: #0A0F1C; --sub: #6E7684; --line: #E8E3DA;
+  --track: #EDE7DC; --gold: #C9993A; --gold-lt: #DDB96A; --gold-dim: rgba(201,153,58,.14);
+  --good: #2E7D5B; --good-dim: rgba(46,125,91,.12); --warn: #B4483E; --warn-dim: rgba(180,72,62,.1);
+  --serif: 'DM Serif Display', Georgia, serif; --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 * { box-sizing: border-box; margin: 0; }
 body { font-family: var(--sans); background: var(--bg); color: var(--ink); padding-bottom: 88px; -webkit-font-smoothing: antialiased; }
 body.auth { background: var(--ink); padding-bottom: 0; }
-.wrap { max-width: 520px; margin: 0 auto; padding: 16px; }
+body.flow { padding-bottom: 0; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
 .card { background: var(--card); border-radius: 14px; padding: 18px; margin-bottom: 14px; border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(10,15,28,.04); }
 h2 { font-family: var(--serif); font-weight: 400; font-size: 20px; margin-bottom: 10px; letter-spacing: .2px; }
+h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
 .brand { font-family: var(--serif); font-size: 17px; letter-spacing: .3px; }
 .brand .accent { color: var(--gold); }
 .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
@@ -42,16 +35,19 @@ h2 { font-family: var(--serif); font-weight: 400; font-size: 20px; margin-bottom
 .big { font-family: var(--serif); font-size: 44px; line-height: 1.1; letter-spacing: .5px; }
 .muted { color: var(--sub); font-size: 13px; line-height: 1.55; }
 .label { font-size: 12px; color: var(--sub); margin: 12px 0 5px; display: block; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
-input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line); font-size: 16px; background: #fff; color: var(--ink); font-family: var(--sans); }
-input:focus { outline: 2px solid var(--gold-lt); border-color: var(--gold); }
-.btn { display: block; width: 100%; padding: 14px; border-radius: 10px; background: var(--ink); color: #fff; border: 0; font-size: 15px; font-weight: 600; margin-top: 14px; cursor: pointer; font-family: var(--sans); letter-spacing: .01em; }
+input, select, textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line); font-size: 16px; background: #fff; color: var(--ink); font-family: var(--sans); }
+textarea { min-height: 74px; resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--gold-lt); border-color: var(--gold); }
+.btn { display: block; width: 100%; padding: 14px; border-radius: 10px; background: var(--ink); color: #fff; border: 0; font-size: 15px; font-weight: 600; margin-top: 14px; cursor: pointer; font-family: var(--sans); }
 .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); }
 .btn.small { width: auto; display: inline-block; padding: 8px 14px; font-size: 13px; margin-top: 0; }
+.btn[disabled] { opacity: .5; cursor: default; }
 .row { display: flex; gap: 10px; }
 .row > * { flex: 1; }
 .bar { height: 8px; background: var(--track); border-radius: 5px; overflow: hidden; margin: 8px 0; }
 .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-lt)); border-radius: 5px; }
 .bar i.over { background: var(--warn); }
+.bar i.gd { background: var(--good); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .chip { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font-size: 13.5px; cursor: pointer; color: var(--ink); }
 .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
@@ -63,76 +59,139 @@ input:focus { outline: 2px solid var(--gold-lt); border-color: var(--gold); }
 .tx .amt { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .tx .amt.plus { color: var(--good); }
 .del { color: #A8ADB7; background: none; border: 0; font-size: 17px; padding: 2px 6px; cursor: pointer; line-height: 1; }
-#tabbar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--line); display: flex; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); }
+#tabbar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--line); display: flex; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 40; }
 .tab { flex: 1; text-align: center; color: #9AA0AB; font-size: 10.5px; padding: 2px 0; cursor: pointer; font-weight: 500; }
 .tab svg { width: 22px; height: 22px; display: block; margin: 0 auto 3px; }
 .tab.on { color: var(--ink); font-weight: 700; }
 .tab.on svg { color: var(--gold); }
-#toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 11px 20px; border-radius: 10px; z-index: 50; font-size: 14px; max-width: 88%; text-align: center; box-shadow: 0 4px 16px rgba(10,15,28,.25); }
+#toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 11px 20px; border-radius: 10px; z-index: 60; font-size: 14px; max-width: 88%; text-align: center; box-shadow: 0 4px 16px rgba(10,15,28,.25); }
 .hidden { display: none !important; }
 .pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 999px; background: var(--gold-dim); color: #8A6825; font-size: 12.5px; font-weight: 600; }
 .pill svg { width: 13px; height: 13px; }
-.warn { color: var(--warn); }
-.good { color: var(--good); }
+.pill.warn { background: var(--warn-dim); color: var(--warn); }
+.pill.good { background: var(--good-dim); color: var(--good); }
+.warn { color: var(--warn); } .good { color: var(--good); }
 .link { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--gold); background: none; border: 0; font-size: 14px; cursor: pointer; padding: 0; font-family: var(--sans); }
 .spread { display: flex; justify-content: space-between; align-items: baseline; }
-.mt { margin-top: 12px; }
-.center { text-align: center; }
+.mt { margin-top: 12px; } .center { text-align: center; }
 label.radio { display: flex; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 14px; align-items: flex-start; cursor: pointer; }
 label.radio input { width: auto; margin-top: 3px; accent-color: var(--gold); }
 .catrow { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
 .catrow .name { flex: 1; font-size: 14px; }
-.catrow input { max-width: 110px; text-align: right; padding: 9px 10px; }
-.minibar { margin: 4px 0 0; }
+.catrow input { max-width: 108px; text-align: right; padding: 9px 10px; }
+.serifnum { font-family: var(--serif); }
 .auth-hero { text-align: center; padding: 56px 0 30px; }
 .auth-hero .brand { font-size: 30px; color: #F0F4F8; }
 .auth-hero .tag { color: #9AA1AD; font-size: 14px; margin-top: 10px; }
 .auth-foot { color: #767E8B; font-size: 12.5px; text-align: center; margin-top: 18px; line-height: 1.6; }
 .auth-foot .by { color: var(--gold); }
 body.auth .card { border: 0; }
-.serifnum { font-family: var(--serif); }
+/* progress dots */
+.steps { display: flex; gap: 6px; justify-content: center; margin: 4px 0 16px; }
+.steps i { width: 22px; height: 4px; border-radius: 2px; background: var(--line); display: block; }
+.steps i.on { background: var(--gold); }
+.steps i.done { background: var(--ink); }
+.stepnum { color: var(--sub); font-size: 12px; text-align: center; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+/* kpi grid */
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.kpi { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.kpi .n { font-family: var(--serif); font-size: 24px; line-height: 1.1; }
+.kpi .k { font-size: 10.5px; color: var(--sub); text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; font-weight: 600; }
+.flagrow { display: flex; align-items: flex-start; gap: 8px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.flagrow:first-child { border-top: 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); margin-top: 5px; flex: none; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 6px; background: var(--warn-dim); color: var(--warn); font-size: 11.5px; font-weight: 600; margin: 2px 4px 2px 0; }
+.tag.gd { background: var(--good-dim); color: var(--good); }
+.trend { font-size: 13px; font-weight: 600; }
+.improw { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.improw select { padding: 6px 8px; font-size: 13px; max-width: 130px; }
+.scroll { max-height: 300px; overflow-y: auto; }
+@media (min-width: 620px) { .kpis { grid-template-columns: repeat(6, 1fr); } }
 </style>
 </head>
 <body>
 <div id="view"><div class="wrap center" style="padding-top:60px"><div class="muted">Loading…</div></div></div>
 <nav id="tabbar" class="hidden"></nav>
 <div id="toast" class="hidden"></div>
+<input type="file" id="csvfile" accept=".csv,text/csv" class="hidden">
 <script>
 var API = 'https://txrfewxihlqrpoatelvn.supabase.co/functions/v1/app';
 var TOKEN = localStorage.getItem('pp_token') || '';
 var S = null, COACH = null, TAB = 'home', AUTHMODE = 'login';
 var QL = { kind: 'spend', cat: 'Groceries' };
-var SPEND_CATS = ['Groceries', 'Eating Out', 'Gas', 'Kids', 'Household', 'Fun', 'Health', 'Other'];
-var INCOME_CATS = ['Overtime', 'Side Gig', 'Other'];
+var COACHFILTER = 'all', COACHSEARCH = '';
+var IMPORT = null; // parsed import staging
+
+var ALL_SPEND = ['Groceries','Eating Out','Coffee','Gas','Auto','Rideshare','Rent/Mortgage','Utilities','Phone','Internet','Subscriptions','Insurance','Kids','Childcare','School','Medical','Pharmacy','Personal Care','Clothing','Household','Home Improvement','Entertainment','Travel','Gifts','Pets','Fitness','Giving','Fees','Cash/ATM','Other'];
+var COMMON_SPEND = ['Groceries','Eating Out','Gas','Kids','Household','Entertainment','Coffee','Medical','Other'];
+var INCOME_CATS = ['Paycheck','Overtime','Side Gig','Refund','Gift','Other'];
+var GOAL_OPTS = ['Get current on my bills','Pay off my debt','Build an emergency fund','Save for something specific','Just understand where my money goes'];
+
+var CATMAP = [
+ ['DOORDASH','Eating Out'],['UBER EATS','Eating Out'],['GRUBHUB','Eating Out'],['MCDONALD','Eating Out'],['CHICK-FIL','Eating Out'],['CHICKFILA','Eating Out'],['WENDY','Eating Out'],['BURGER KING','Eating Out'],['TACO BELL','Eating Out'],['CHIPOTLE','Eating Out'],['SUBWAY','Eating Out'],['PIZZA','Eating Out'],['DOMINO','Eating Out'],['PANERA','Eating Out'],['POPEYES','Eating Out'],['SONIC','Eating Out'],['ARBY','Eating Out'],['RESTAURANT','Eating Out'],['GRILL','Eating Out'],['DINER','Eating Out'],
+ ['STARBUCKS','Coffee'],['DUNKIN','Coffee'],['CAFE','Coffee'],['COFFEE','Coffee'],
+ ['WALMART','Groceries'],['WM SUPERCENTER','Groceries'],['KROGER','Groceries'],['ALDI','Groceries'],['PUBLIX','Groceries'],['SAFEWAY','Groceries'],['TRADER JOE','Groceries'],['WHOLE FOODS','Groceries'],['FOOD LION','Groceries'],['HARRIS TEETER','Groceries'],['COSTCO','Groceries'],['MEIJER','Groceries'],['H-E-B','Groceries'],['WINCO','Groceries'],['GROCER','Groceries'],['SUPERMARKET','Groceries'],
+ ['SHELL','Gas'],['EXXON','Gas'],['CHEVRON','Gas'],['MARATHON','Gas'],['CIRCLE K','Gas'],['QUIKTRIP','Gas'],['SPEEDWAY','Gas'],['CASEY','Gas'],['VALERO','Gas'],['SUNOCO','Gas'],['PHILLIPS 66','Gas'],['MURPHY','Gas'],['FUEL','Gas'],
+ ['UBER','Rideshare'],['LYFT','Rideshare'],
+ ['AUTOZONE','Auto'],['O\'REILLY','Auto'],['JIFFY','Auto'],['VALVOLINE','Auto'],['PARKING','Auto'],['TOLL','Auto'],['DMV','Auto'],
+ ['NETFLIX','Subscriptions'],['HULU','Subscriptions'],['DISNEY','Subscriptions'],['SPOTIFY','Subscriptions'],['HBO','Subscriptions'],['PARAMOUNT','Subscriptions'],['PEACOCK','Subscriptions'],['YOUTUBE','Subscriptions'],['AUDIBLE','Subscriptions'],['PRIME VIDEO','Subscriptions'],['APPLE.COM','Subscriptions'],['GOOGLE STORAGE','Subscriptions'],
+ ['VERIZON','Phone'],['T-MOBILE','Phone'],['AT&T','Phone'],['CRICKET','Phone'],['METRO PCS','Phone'],['BOOST MOBILE','Phone'],['SPRINT','Phone'],
+ ['COMCAST','Internet'],['XFINITY','Internet'],['SPECTRUM','Internet'],['CENTURYLINK','Internet'],['FRONTIER','Internet'],
+ ['GEICO','Insurance'],['PROGRESSIVE','Insurance'],['STATE FARM','Insurance'],['ALLSTATE','Insurance'],['LIBERTY MUTUAL','Insurance'],['AETNA','Insurance'],['CIGNA','Insurance'],['INSURANCE','Insurance'],
+ ['DAYCARE','Childcare'],['CHILDCARE','Childcare'],['LEARNING CENTER','Childcare'],['KINDERCARE','Childcare'],['BRIGHT HORIZONS','Childcare'],
+ ['TUITION','School'],['UNIVERSITY','School'],['COLLEGE','School'],['SALLIE MAE','School'],['NELNET','School'],['SCHOOL','School'],
+ ['CVS','Pharmacy'],['WALGREENS','Pharmacy'],['RITE AID','Pharmacy'],['PHARMACY','Pharmacy'],
+ ['HOSPITAL','Medical'],['CLINIC','Medical'],['MEDICAL','Medical'],['DENTAL','Medical'],['DENTIST','Medical'],['URGENT CARE','Medical'],['LABCORP','Medical'],['QUEST DIAG','Medical'],['DOCTOR','Medical'],
+ ['ULTA','Personal Care'],['SEPHORA','Personal Care'],['SALON','Personal Care'],['NAIL','Personal Care'],['BARBER','Personal Care'],['HAIR','Personal Care'],
+ ['HOME DEPOT','Home Improvement'],['LOWE\'S','Home Improvement'],['LOWES','Home Improvement'],['ACE HARDWARE','Home Improvement'],['MENARDS','Home Improvement'],['SHERWIN','Home Improvement'],
+ ['CARTER','Kids'],['CHILDREN\'S PLACE','Kids'],['TOYS','Kids'],['GYMBOREE','Kids'],
+ ['OLD NAVY','Clothing'],['H&M','Clothing'],['ROSS','Clothing'],['TJ MAXX','Clothing'],['MARSHALLS','Clothing'],['NIKE','Clothing'],['ADIDAS','Clothing'],['SHEIN','Clothing'],['MACY','Clothing'],['KOHL','Clothing'],['NORDSTROM','Clothing'],['FOOT LOCKER','Clothing'],['GAP ','Clothing'],
+ ['DOLLAR TREE','Household'],['DOLLAR GENERAL','Household'],['FAMILY DOLLAR','Household'],['IKEA','Household'],['BED BATH','Household'],['HOMEGOODS','Household'],['TARGET','Household'],['AMAZON','Household'],['DOLLAR','Household'],
+ ['AMC ','Entertainment'],['REGAL','Entertainment'],['CINEMA','Entertainment'],['MOVIE','Entertainment'],['THEATER','Entertainment'],['STEAM','Entertainment'],['PLAYSTATION','Entertainment'],['XBOX','Entertainment'],['NINTENDO','Entertainment'],['TICKETMASTER','Entertainment'],['CONCERT','Entertainment'],
+ ['DELTA','Travel'],['UNITED AIR','Travel'],['SOUTHWEST','Travel'],['AMERICAN AIR','Travel'],['MARRIOTT','Travel'],['HILTON','Travel'],['AIRBNB','Travel'],['EXPEDIA','Travel'],['HOTEL','Travel'],['BOOKING.COM','Travel'],
+ ['PETSMART','Pets'],['PETCO','Pets'],['CHEWY','Pets'],
+ ['PLANET FITNESS','Fitness'],['LA FITNESS','Fitness'],['PELOTON','Fitness'],['CROSSFIT','Fitness'],['YOGA','Fitness'],['GYM','Fitness'],
+ ['CHURCH','Giving'],['GOFUNDME','Giving'],['DONATION','Giving'],['RED CROSS','Giving'],['TITHE','Giving'],
+ ['OVERDRAFT','Fees'],['SERVICE CHARGE','Fees'],['LATE FEE','Fees'],['INTEREST CHARGE','Fees'],['ANNUAL FEE','Fees'],['NSF FEE','Fees'],
+ ['ATM','Cash/ATM'],['WITHDRAWAL','Cash/ATM'],
+ ['RENT','Rent/Mortgage'],['MORTGAGE','Rent/Mortgage'],['APARTMENT','Rent/Mortgage'],['LEASING','Rent/Mortgage'],
+ ['ELECTRIC','Utilities'],['ENERGY','Utilities'],['WATER DEPT','Utilities'],['UTILITY','Utilities'],['DUKE ENERGY','Utilities'],['SEWER','Utilities'],['WASTE MGMT','Utilities']
+];
+var SKIP_KW = ['ZELLE','VENMO','CASH APP','PAYPAL','TRANSFER','PYMT','PAYMENT THANK','CREDIT CARD PAYMENT','CC PAYMENT','ONLINE PAYMENT','AUTOPAY PAYMENT','BILL PAYMENT'];
+var INCOME_KW = ['PAYROLL','DIRECT DEP','DIRECT DEPOSIT','SALARY','DEPOSIT'];
+
+function categorize(desc, isCredit) {
+  var d = (desc || '').toUpperCase();
+  for (var i = 0; i < SKIP_KW.length; i++) if (d.indexOf(SKIP_KW[i]) !== -1) return { skip: true };
+  if (isCredit) {
+    for (var j = 0; j < INCOME_KW.length; j++) if (d.indexOf(INCOME_KW[j]) !== -1) return { kind: 'income', category: 'Paycheck' };
+    return { kind: 'income', category: 'Refund' };
+  }
+  for (var k = 0; k < CATMAP.length; k++) if (d.indexOf(CATMAP[k][0]) !== -1) return { kind: 'spend', category: CATMAP[k][1] };
+  return { kind: 'spend', category: 'Other' };
+}
 
 var IC = {
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg>',
   plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>',
   debts: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 18 13.5 8.5l-5 5L1 6"/><path d="M17 18h6v-6"/></svg>',
+  goals: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>',
   team: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>',
-  flame: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c-4 0-7-2.9-7-6.7 0-4.7 4.6-6.3 5.4-11.9 2.5 1.9 4 4.4 4.3 7 .8-.6 1.4-1.6 1.6-2.7C17.9 9.5 19 12 19 15.3 19 19.1 16 22 12 22z"/></svg>'
+  flame: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c-4 0-7-2.9-7-6.7 0-4.7 4.6-6.3 5.4-11.9 2.5 1.9 4 4.4 4.3 7 .8-.6 1.4-1.6 1.6-2.7C17.9 9.5 19 12 19 15.3 19 19.1 16 22 12 22z"/></svg>',
+  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14l5-5 5 5"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10l5 5 5-5"/></svg>'
 };
 
 function q(id) { return document.getElementById(id); }
 function val(id) { var e = q(id); return e ? e.value : ''; }
-function esc(s) {
-  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-function fmt(n) {
-  n = Number(n) || 0;
-  var neg = n < 0; n = Math.abs(n);
-  var cents = Math.round(n * 100) % 100 !== 0;
-  var s = n.toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: 2 });
-  return (neg ? '-$' : '$') + s;
-}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmt(n) { n = Number(n) || 0; var neg = n < 0; n = Math.abs(n); return (neg ? '-$' : '$') + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+function fmt0(n) { n = Math.round(Number(n) || 0); return '$' + n.toLocaleString('en-US'); }
 function dshort(iso) { if (!iso) return ''; var d = new Date(iso + 'T12:00:00'); return (d.getMonth() + 1) + '/' + d.getDate(); }
 function dlong(iso) { if (!iso) return ''; var d = new Date(iso + 'T12:00:00'); return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }
 function monthAfter(n) { var d = new Date(); d.setMonth(d.getMonth() + n); return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }); }
-function toast(m) {
-  var t = q('toast'); t.textContent = m; t.classList.remove('hidden');
-  clearTimeout(t._h); t._h = setTimeout(function () { t.classList.add('hidden'); }, 2200);
-}
+function toast(m) { var t = q('toast'); t.textContent = m; t.classList.remove('hidden'); clearTimeout(t._h); t._h = setTimeout(function () { t.classList.add('hidden'); }, 2400); }
 function setToken(t) { TOKEN = t || ''; if (t) localStorage.setItem('pp_token', t); else localStorage.removeItem('pp_token'); }
 
 function api(path, method, body) {
@@ -149,142 +208,474 @@ function api(path, method, body) {
 function oops(e) { toast(e.message || 'Something went wrong'); }
 
 function load() {
-  return api('state').then(function (d) { S = d; document.body.classList.remove('auth'); renderShell(); render(); })
-    .catch(function (e) { if (e.status === 401) { setToken(''); renderAuth(); } else { oops(e); } });
+  return api('state').then(function (d) {
+    S = d; document.body.classList.remove('auth');
+    var step = d.settings ? Number(d.settings.onboard_step) : 0;
+    if (d.user.role === 'member' && step >= 2 && step <= 8) { document.body.classList.add('flow'); q('tabbar').classList.add('hidden'); renderWizard(); return; }
+    document.body.classList.remove('flow'); renderShell(); render();
+  }).catch(function (e) { if (e.status === 401) { setToken(''); renderAuth(); } else { oops(e); } });
 }
 
-/* ---------- auth ---------- */
+/* ---------------- AUTH ---------------- */
 function renderAuth() {
-  document.body.classList.add('auth');
+  document.body.classList.add('auth'); document.body.classList.remove('flow');
   q('tabbar').classList.add('hidden');
-  var h = '<div class="wrap">';
-  h += '<div class="auth-hero"><div class="brand">Pocket <span class="accent">Planner</span></div><div class="tag">Your money, one paycheck at a time.</div></div>';
-  h += '<div class="card">';
+  var h = '<div class="wrap"><div class="auth-hero"><div class="brand">Pocket <span class="accent">Planner</span></div><div class="tag">Your money, one paycheck at a time.</div></div><div class="card">';
   if (AUTHMODE === 'login') {
-    h += '<h2>Sign in</h2>';
-    h += '<span class="label">Username</span><input id="a_user" autocapitalize="none" autocomplete="username">';
+    h += '<h2>Sign in</h2><span class="label">Username</span><input id="a_user" autocapitalize="none" autocomplete="username">';
     h += '<span class="label">PIN</span><input id="a_pin" type="password" inputmode="numeric" autocomplete="current-password">';
-    h += '<button class="btn" id="a_go">Sign in</button>';
-    h += '<p class="muted mt center">New here? <button class="link" id="a_switch">Create your account</button></p>';
+    h += '<button class="btn" id="a_go">Sign in</button><p class="muted mt center">New here? <button class="link" id="a_switch">Create your account</button></p>';
   } else {
-    h += '<h2>Create account</h2>';
-    h += '<span class="label">Invite code</span><input id="s_invite" autocapitalize="characters" placeholder="From your coach">';
-    h += '<span class="label">First name</span><input id="s_name">';
-    h += '<span class="label">Pick a username</span><input id="s_user" autocapitalize="none">';
+    h += '<h2>Create account</h2><span class="label">Invite code</span><input id="s_invite" autocapitalize="characters" placeholder="From your coach">';
+    h += '<span class="label">First name</span><input id="s_name"><span class="label">Pick a username</span><input id="s_user" autocapitalize="none">';
     h += '<span class="label">Pick a PIN (4-8 digits)</span><input id="s_pin" type="password" inputmode="numeric">';
-    h += '<button class="btn" id="s_go">Create account</button>';
-    h += '<p class="muted mt center"><button class="link" id="a_switch">Back to sign in</button></p>';
+    h += '<button class="btn" id="s_go">Create account</button><p class="muted mt center"><button class="link" id="a_switch">Back to sign in</button></p>';
   }
-  h += '</div>';
-  h += '<p class="auth-foot">Private and secure. Manual entry only — never enter bank logins or card numbers.<br>A personal tool by <span class="by">RAIS Advisory</span>.</p>';
-  h += '</div>';
+  h += '</div><p class="auth-foot">Private and secure. You choose what to share. A personal tool by <span class="by">RAIS Advisory</span>.</p></div>';
   q('view').innerHTML = h;
   q('a_switch').onclick = function () { AUTHMODE = AUTHMODE === 'login' ? 'signup' : 'login'; renderAuth(); };
   if (AUTHMODE === 'login') {
-    q('a_go').onclick = function () {
-      api('login', 'POST', { username: val('a_user'), pin: val('a_pin') })
-        .then(function (d) { setToken(d.token); load(); }).catch(oops);
-    };
+    q('a_go').onclick = function () { api('login', 'POST', { username: val('a_user'), pin: val('a_pin') }).then(function (d) { setToken(d.token); load(); }).catch(oops); };
     q('a_pin').addEventListener('keydown', function (e) { if (e.key === 'Enter') q('a_go').click(); });
   } else {
-    q('s_go').onclick = function () {
-      api('signup', 'POST', { invite: val('s_invite'), display_name: val('s_name'), username: val('s_user'), pin: val('s_pin') })
-        .then(function (d) { setToken(d.token); toast('Welcome, ' + d.user.display_name + '!'); load(); }).catch(oops);
-    };
+    q('s_go').onclick = function () { api('signup', 'POST', { invite: val('s_invite'), display_name: val('s_name'), username: val('s_user'), pin: val('s_pin') }).then(function (d) { setToken(d.token); toast('Welcome, ' + d.user.display_name + '!'); load(); }).catch(oops); };
   }
 }
 
-/* ---------- shell ---------- */
-function renderShell() {
-  var tabs = [
-    { t: 'home', ic: IC.home, n: 'Home' },
-    { t: 'plan', ic: IC.plan, n: 'Plan' },
-    { t: 'debts', ic: IC.debts, n: 'Debts' },
-  ];
-  if (S.user.role === 'coach') tabs.push({ t: 'team', ic: IC.team, n: 'Team' });
-  tabs.push({ t: 'more', ic: IC.more, n: 'More' });
-  var h = '';
-  tabs.forEach(function (t) {
-    h += '<div class="tab' + (TAB === t.t ? ' on' : '') + '" data-t="' + t.t + '">' + t.ic + t.n + '</div>';
-  });
-  var bar = q('tabbar');
-  bar.innerHTML = h;
-  bar.classList.remove('hidden');
-  Array.prototype.forEach.call(bar.querySelectorAll('.tab'), function (el) {
-    el.onclick = function () { TAB = el.getAttribute('data-t'); renderShell(); render(); };
-  });
+/* ---------------- ONBOARDING WIZARD ---------------- */
+var WIZ_TITLES = { 2: 'Your goals', 3: 'Import statements', 4: 'Your debts', 5: 'Build your budget', 6: 'Your coach', 7: 'Debt payoff plan', 8: 'Savings goals' };
+function wizStep() { return S.settings ? Number(S.settings.onboard_step) : 2; }
+function setStep(n, then) { return api('profile', 'PUT', { onboard_step: n }).then(function () { S.settings.onboard_step = n; if (then) then(); }); }
+function wizDots(step) {
+  var h = '<div class="steps">';
+  for (var i = 2; i <= 8; i++) h += '<i class="' + (i < step ? 'done' : i === step ? 'on' : '') + '"></i>';
+  return h + '</div><div class="stepnum">Step ' + (step - 1) + ' of 7 · ' + WIZ_TITLES[step] + '</div>';
+}
+function wizShell(step, inner) {
+  var h = '<div class="wrap" style="padding-top:24px"><div class="center" style="margin-bottom:14px"><span class="brand">Pocket <span class="accent">Planner</span></span></div>';
+  h += wizDots(step) + '<div class="card mt">' + inner + '</div>';
+  h += '<p class="center"><button class="link" id="wiz_skip">Skip setup for now</button></p></div>';
+  q('view').innerHTML = h;
+  q('wiz_skip').onclick = function () { setStep(9, function () { document.body.classList.remove('flow'); load(); }); };
+}
+function renderWizard() {
+  var step = wizStep(); var st = S.settings || {};
+  if (step === 2) {
+    var g = '<h2>Let\'s understand your money</h2><p class="muted">A few honest answers. There are no wrong ones — this is just for you.</p>';
+    g += '<span class="label">What are you most trying to do?</span><select id="w_goal">' + GOAL_OPTS.map(function (o) { return '<option' + (st.primary_goal === o ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>';
+    g += '<span class="label">Roughly, your take-home pay each month</span><input id="w_income" type="number" inputmode="decimal" value="' + (Number(st.income_monthly) || '') + '" placeholder="e.g. 4500">';
+    g += '<span class="label">Be honest — what do you THINK you spend a month (outside of rent & bills)?</span><input id="w_guess" type="number" inputmode="decimal" value="' + (Number(st.guess_spend) || '') + '" placeholder="Your gut guess">';
+    g += '<p class="muted" style="margin-top:4px">We\'ll compare this to what your statements actually show. That gap is where the magic is.</p>';
+    g += '<span class="label">What trips you up most? (optional)</span><textarea id="w_notes" placeholder="Impulse buys, eating out, subscriptions…">' + esc(st.spending_notes || '') + '</textarea>';
+    g += '<button class="btn" id="w_next">Continue</button>';
+    wizShell(step, g);
+    q('w_next').onclick = function () {
+      api('profile', 'PUT', { primary_goal: val('w_goal'), income_monthly: parseFloat(val('w_income')) || 0, guess_spend: parseFloat(val('w_guess')) || 0, spending_notes: val('w_notes'), onboard_step: 3 })
+        .then(function () { return load(); }).catch(oops);
+    };
+  } else if (step === 3) {
+    var im = '<h2>Import your last 3–6 months</h2><p class="muted">Download a CSV of transactions from your bank or card\'s website, then upload it here. We\'ll automatically sort it into categories and build your real spending picture. Nothing is shared — this stays private to you.</p>';
+    im += '<button class="btn" id="w_upload">Choose a CSV file</button>';
+    im += '<button class="btn ghost" id="w_skipimp">I\'ll do this later</button>';
+    im += '<p class="muted mt">No statement handy? You can skip and add spending manually — but importing is what makes this automatic.</p>';
+    wizShell(step, im);
+    q('w_upload').onclick = function () { pickCSV(function () { renderWizard(); }); };
+    q('w_skipimp').onclick = function () { setStep(4, function () { load(); }); };
+  } else if (step === 4) {
+    renderDebtsInner(step);
+  } else if (step === 5) {
+    renderBudgetBuilder(step);
+  } else if (step === 6) {
+    var c = '<h2>Align with your coach</h2><p class="muted">Your coach can cheer you on and give feedback. <b>You decide what they see</b> — change it anytime later.</p>';
+    var tiers = [['full','Everything','Progress, budgets, and individual purchases.'],['summary','Summary only','Totals and progress — never individual purchases.'],['streaks','Streaks only','Just your logging streak and debt progress %.']];
+    tiers.forEach(function (t) { c += '<label class="radio"><input type="radio" name="wtier" value="' + t[0] + '"' + (S.user.share_tier === t[0] ? ' checked' : '') + '><span><b>' + t[1] + '</b><br><span class="muted">' + t[2] + '</span></span></label>'; });
+    c += '<button class="btn" id="w_next">Continue</button>';
+    wizShell(step, c);
+    q('w_next').onclick = function () {
+      var sel = document.querySelector('input[name=wtier]:checked');
+      var tier = sel ? sel.value : 'summary';
+      api('share', 'PUT', { share_tier: tier }).then(function () { S.user.share_tier = tier; return setStep(7, function () { load(); }); }).catch(oops);
+    };
+  } else if (step === 7) {
+    renderPayoffPlanner(step);
+  } else if (step === 8) {
+    renderGoalsInner(step);
+  }
 }
 
+/* ---------------- CSV IMPORT ---------------- */
+function pickCSV(done) {
+  var inp = q('csvfile');
+  inp.value = '';
+  inp.onchange = function () {
+    var f = inp.files[0]; if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () { stageImport(reader.result); if (done) done(); };
+    reader.readAsText(f);
+  };
+  inp.click();
+}
+function parseCSV(text) {
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  var rows = [], field = '', row = [], inQ = false;
+  for (var i = 0; i < text.length; i++) {
+    var c = text[i];
+    if (inQ) { if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; } else field += c; }
+    else { if (c === '"') inQ = true; else if (c === ',') { row.push(field); field = ''; } else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; } else field += c; }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(function (r) { return r.some(function (x) { return String(x).trim() !== ''; }); });
+}
+function parseDate(s) {
+  s = String(s).trim(); if (!s) return null;
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (m) { var yr = m[3]; if (yr.length === 2) yr = '20' + yr; return yr + '-' + ('0' + m[1]).slice(-2) + '-' + ('0' + m[2]).slice(-2); }
+  var d = new Date(s); if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  return null;
+}
+function toNum(s) { var n = parseFloat(String(s).replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : NaN; }
+function guessCol(headers, res) { for (var i = 0; i < headers.length; i++) if (res.test(headers[i])) return i; return -1; }
+
+function stageImport(text) {
+  var rows = parseCSV(text);
+  if (rows.length < 2) { toast('That file has no rows we can read.'); return; }
+  var headers = rows[0].map(function (h) { return String(h).trim(); });
+  var body = rows.slice(1);
+  var dateI = guessCol(headers, /date|posted/i);
+  var descI = guessCol(headers, /desc|name|memo|payee|detail|transaction/i);
+  var amtI = guessCol(headers, /amount|amt/i);
+  var debitI = guessCol(headers, /debit|withdraw/i);
+  var creditI = guessCol(headers, /credit|deposit/i);
+  if (dateI < 0) dateI = 0;
+  if (descI < 0) { for (var c = 0; c < headers.length; c++) if (c !== dateI && c !== amtI) { descI = c; break; } }
+  var mode = (amtI < 0 && debitI >= 0) ? 'split' : 'single';
+  if (amtI < 0 && mode === 'single') { for (var a = 0; a < headers.length; a++) if (a !== dateI && a !== descI && !isNaN(toNum(body[0] && body[0][a]))) { amtI = a; break; } }
+  IMPORT = { headers: headers, body: body, dateI: dateI, descI: descI, amtI: amtI, debitI: debitI, creditI: creditI, mode: mode, spendSign: 'neg' };
+  TAB = 'home';
+  renderImportReview();
+}
+function computeImport() {
+  var I = IMPORT; var out = [];
+  for (var r = 0; r < I.body.length; r++) {
+    var row = I.body[r];
+    var iso = parseDate(row[I.dateI]);
+    var desc = String(row[I.descI] || '').trim();
+    var amt, isCredit;
+    if (I.mode === 'split') {
+      var deb = toNum(row[I.debitI]); var cre = toNum(row[I.creditI]);
+      if (isFinite(cre) && cre > 0) { amt = cre; isCredit = true; } else if (isFinite(deb) && deb > 0) { amt = deb; isCredit = false; } else continue;
+    } else {
+      var raw = toNum(row[I.amtI]); if (!isFinite(raw) || raw === 0) continue;
+      if (I.spendSign === 'neg') { isCredit = raw > 0; } else { isCredit = raw < 0; }
+      amt = Math.abs(raw);
+    }
+    if (!iso) continue;
+    var cat = categorize(desc, isCredit);
+    if (cat.skip) { out.push({ skip: true }); continue; }
+    out.push({ spent_at: iso, note: desc.slice(0, 60), amount: amt, kind: cat.kind, category: cat.category });
+  }
+  return out;
+}
+function renderImportReview() {
+  var I = IMPORT; if (!I) { return; }
+  var items = computeImport();
+  var kept = items.filter(function (x) { return !x.skip; });
+  var skipped = items.length - kept.length;
+  var spend = kept.filter(function (x) { return x.kind === 'spend'; });
+  var income = kept.filter(function (x) { return x.kind === 'income'; });
+  var totalSpend = spend.reduce(function (s, x) { return s + x.amount; }, 0);
+  var totalInc = income.reduce(function (s, x) { return s + x.amount; }, 0);
+  var dates = kept.map(function (x) { return x.spent_at; }).sort();
+  var byCat = {};
+  spend.forEach(function (x) { byCat[x.category] = (byCat[x.category] || 0) + x.amount; });
+  var catList = Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; });
+
+  var h = '<div class="wrap" style="padding-top:20px"><div class="topbar"><span class="brand">Import statements</span><button class="link" id="im_cancel">Cancel</button></div>';
+  h += '<div class="card"><h3>Map your columns</h3><p class="muted">We guessed these from your file. Fix any that look wrong.</p>';
+  h += '<span class="label">Date column</span>' + colSelect('im_date', I.dateI);
+  h += '<span class="label">Description column</span>' + colSelect('im_desc', I.descI);
+  h += '<div class="seg"><button id="im_single" class="' + (I.mode === 'single' ? 'on' : '') + '">One amount column</button><button id="im_split" class="' + (I.mode === 'split' ? 'on' : '') + '">Separate debit / credit</button></div>';
+  if (I.mode === 'single') {
+    h += '<span class="label">Amount column</span>' + colSelect('im_amt', I.amtI);
+    h += '<span class="label">In my file, spending shows as</span><div class="seg"><button id="im_neg" class="' + (I.spendSign === 'neg' ? 'on' : '') + '">Negative numbers</button><button id="im_pos" class="' + (I.spendSign === 'pos' ? 'on' : '') + '">Positive numbers</button></div>';
+  } else {
+    h += '<span class="label">Debit (spending) column</span>' + colSelect('im_debit', I.debitI);
+    h += '<span class="label">Credit (money in) column</span>' + colSelect('im_credit', I.creditI);
+  }
+  h += '</div>';
+
+  h += '<div class="card"><h3>Preview</h3>';
+  h += '<div class="spread"><span class="muted">Transactions found</span><b>' + kept.length + '</b></div>';
+  h += '<div class="spread"><span class="muted">Date range</span><b>' + (dates.length ? dshort(dates[0]) + ' – ' + dshort(dates[dates.length - 1]) : '—') + '</b></div>';
+  h += '<div class="spread"><span class="muted">Total spending</span><b class="warn">' + fmt(totalSpend) + '</b></div>';
+  h += '<div class="spread"><span class="muted">Money in</span><b class="good">' + fmt(totalInc) + '</b></div>';
+  if (skipped) h += '<div class="spread"><span class="muted">Skipped (transfers / card payments)</span><b>' + skipped + '</b></div>';
+  if (!kept.length) h += '<p class="warn mt">No transactions read yet — check the column mapping above.</p>';
+  h += '</div>';
+
+  if (catList.length) {
+    h += '<div class="card"><h3>Where it went</h3>';
+    catList.forEach(function (c) {
+      var pct = totalSpend > 0 ? byCat[c] / totalSpend * 100 : 0;
+      h += '<div style="padding:6px 0"><div class="spread"><span style="font-size:14px">' + esc(c) + '</span><b class="amt">' + fmt(byCat[c]) + '</b></div><div class="bar"><i style="width:' + pct + '%"></i></div></div>';
+    });
+    h += '</div>';
+  }
+
+  if (kept.length) {
+    h += '<div class="card"><h3>Spot-check & fix categories</h3><p class="muted">First 30 shown. Change any that look off — the rest import as sorted.</p><div class="scroll">';
+    kept.slice(0, 30).forEach(function (x, idx) {
+      h += '<div class="improw"><div><div>' + esc(x.note || '(no description)') + '</div><div class="muted">' + dshort(x.spent_at) + (x.kind === 'income' ? ' · money in' : '') + '</div></div><div class="amt ' + (x.kind === 'income' ? 'plus' : '') + '">' + (x.kind === 'income' ? '+' : '') + fmt(x.amount) + '</div>' + catSelect('imc_' + idx, x.category, x.kind) + '</div>';
+    });
+    h += '</div></div>';
+    h += '<button class="btn" id="im_go">Import ' + kept.length + ' transactions</button>';
+  }
+  h += '<div style="height:20px"></div></div>';
+  q('view').innerHTML = h;
+
+  q('im_cancel').onclick = function () { IMPORT = null; if (wizStep() >= 2 && wizStep() <= 8) renderWizard(); else { renderShell(); TAB = 'plan'; render(); } };
+  q('im_date').onchange = function () { I.dateI = +this.value; renderImportReview(); };
+  q('im_desc').onchange = function () { I.descI = +this.value; renderImportReview(); };
+  q('im_single').onclick = function () { I.mode = 'single'; renderImportReview(); };
+  q('im_split').onclick = function () { I.mode = 'split'; renderImportReview(); };
+  if (q('im_amt')) q('im_amt').onchange = function () { I.amtI = +this.value; renderImportReview(); };
+  if (q('im_neg')) q('im_neg').onclick = function () { I.spendSign = 'neg'; renderImportReview(); };
+  if (q('im_pos')) q('im_pos').onclick = function () { I.spendSign = 'pos'; renderImportReview(); };
+  if (q('im_debit')) q('im_debit').onchange = function () { I.debitI = +this.value; renderImportReview(); };
+  if (q('im_credit')) q('im_credit').onchange = function () { I.creditI = +this.value; renderImportReview(); };
+  if (q('im_go')) q('im_go').onclick = function () {
+    var finalItems = computeImport().filter(function (x) { return !x.skip; });
+    kept.slice(0, 30).forEach(function (x, idx) { var sel = q('imc_' + idx); if (sel && finalItems[idx]) finalItems[idx].category = sel.value; });
+    q('im_go').disabled = true; q('im_go').textContent = 'Importing…';
+    api('import', 'POST', { rows: finalItems }).then(function (r) {
+      IMPORT = null; toast('Imported ' + r.inserted + ' transactions');
+      if (wizStep() === 3) { setStep(4, function () { load(); }); }
+      else { load(); }
+    }).catch(function (e) { q('im_go').disabled = false; q('im_go').textContent = 'Import'; oops(e); });
+  };
+}
+function colSelect(id, sel) {
+  var h = '<select id="' + id + '">';
+  IMPORT.headers.forEach(function (hd, i) { h += '<option value="' + i + '"' + (i === sel ? ' selected' : '') + '>' + esc(hd || ('Column ' + (i + 1))) + '</option>'; });
+  return h + '</select>';
+}
+function catSelect(id, sel, kind) {
+  var list = kind === 'income' ? INCOME_CATS : ALL_SPEND;
+  if (list.indexOf(sel) === -1) list = [sel].concat(list);
+  return '<select id="' + id + '">' + list.map(function (c) { return '<option' + (c === sel ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>';
+}
+
+/* ---------------- BUDGET BUILDER (wizard step 5 + reused) ---------------- */
+function renderBudgetBuilder(step) {
+  var avg = S.avg_by_category || {};
+  var existing = {}; (S.category_budgets || []).forEach(function (b) { existing[b.category] = Number(b.amount); });
+  var cats = Object.keys(avg).filter(function (c) { return avg[c] > 0; }).sort(function (a, b) { return avg[b] - avg[a]; });
+  Object.keys(existing).forEach(function (c) { if (cats.indexOf(c) === -1) cats.push(c); });
+  if (!cats.length) cats = COMMON_SPEND.slice(0, 6);
+  var actualMonthly = 0; for (var c in avg) actualMonthly += avg[c];
+  var guess = S.settings ? Number(S.settings.guess_spend) : 0;
+
+  var h = '<h2>Your real budget</h2>';
+  if (S.imported_count > 0 && actualMonthly > 0) {
+    h += '<div class="card" style="background:var(--gold-dim);border:0;margin:-4px 0 14px">';
+    if (guess > 0) {
+      var diff = actualMonthly - guess;
+      h += '<p style="font-size:14px;line-height:1.6">You guessed about <b>' + fmt0(guess) + '/mo</b>. Your statements show <b class="serifnum" style="font-size:20px">' + fmt0(actualMonthly) + '/mo</b>';
+      h += diff > 0 ? ' — that\'s <b class="warn">' + fmt0(Math.abs(diff)) + ' more</b> than you thought. That gap is your opportunity.' : ' — right in line with your gut. Nice awareness.';
+      h += '</p>';
+    } else {
+      h += '<p style="font-size:14px">Your statements show about <b class="serifnum" style="font-size:20px">' + fmt0(actualMonthly) + '/mo</b> in spending.</p>';
+    }
+    h += '</div>';
+  }
+  h += '<p class="muted">Here\'s a starting budget per paycheck, based on what you actually spend. Adjust anything, then save.</p><div class="mt"></div>';
+  var payPer = 26;
+  cats.forEach(function (c, idx) {
+    var suggested = existing[c] != null ? existing[c] : Math.round(avg[c] * 12 / payPer);
+    h += '<div class="catrow"><span class="name">' + c + (avg[c] > 0 ? '<br><span class="muted">avg ' + fmt0(avg[c]) + '/mo</span>' : '') + '</span><input id="bb_' + idx + '" data-cat="' + esc(c) + '" type="number" inputmode="decimal" value="' + (suggested || '') + '"></div>';
+  });
+  h += '<div class="tx mt" style="border-top:1px solid var(--line)"><b>Total per paycheck</b><b class="amt" id="bb_total">$0</b></div>';
+  h += '<button class="btn" id="bb_save">' + (step ? 'Save & continue' : 'Save budget') + '</button>';
+  if (step) { wizShell(step, h); } else { q('view').innerHTML = '<div class="wrap">' + topbar() + '<div class="card">' + h + '</div></div>'; }
+
+  function total() { var t = 0; cats.forEach(function (c, idx) { t += parseFloat(val('bb_' + idx)) || 0; }); q('bb_total').textContent = fmt(t); }
+  cats.forEach(function (c, idx) { q('bb_' + idx).addEventListener('input', total); }); total();
+  q('bb_save').onclick = function () {
+    var list = cats.map(function (c, idx) { return { category: q('bb_' + idx).getAttribute('data-cat'), amount: parseFloat(val('bb_' + idx)) || 0 }; });
+    api('budgets', 'PUT', { budgets: list }).then(function () {
+      toast('Budget saved');
+      if (step) setStep(6, function () { load(); }); else load();
+    }).catch(oops);
+  };
+}
+
+/* ---------------- PAYOFF PLANNER (wizard step 7 + reused in Debts) ---------------- */
+function simulate(debts, extra, method) {
+  var list = debts.filter(function (d) { return Number(d.balance) > 0; }).map(function (d) { return { name: d.name, bal: Number(d.balance), apr: Number(d.apr) || 0, min: Number(d.min_payment) || 0 }; });
+  if (!list.length) return null;
+  list.sort(function (a, b) { return method === 'avalanche' ? b.apr - a.apr : a.bal - b.bal; });
+  var totalPay = extra; list.forEach(function (d) { totalPay += d.min; });
+  if (!(totalPay > 0)) return { stuck: true };
+  var months = 0, interest = 0, payoffs = [];
+  while (months < 600) {
+    var alive = list.filter(function (d) { return d.bal > 0.005; }); if (!alive.length) break;
+    months++;
+    alive.forEach(function (d) { var it = d.bal * d.apr / 100 / 12; d.bal += it; interest += it; });
+    var budget = totalPay;
+    alive.forEach(function (d) { var p = Math.min(d.bal, d.min); d.bal -= p; budget -= p; });
+    for (var j = 0; j < list.length && budget > 0; j++) if (list[j].bal > 0.005) { var p2 = Math.min(list[j].bal, budget); list[j].bal -= p2; budget -= p2; }
+    list.forEach(function (d) { if (d.bal <= 0.005 && !d.done) { d.done = true; payoffs.push({ name: d.name, month: months }); } });
+  }
+  if (months >= 600) return { stuck: true };
+  return { months: months, interest: interest, payoffs: payoffs };
+}
+function renderPayoffPlanner(step) {
+  var st = S.settings || {}; var debts = S.debts || [];
+  var extra = Number(st.extra_debt_monthly) || 0; var method = st.payoff_method || 'snowball';
+  var h = '<h2>Your payoff plan</h2>';
+  if (!debts.length) { h += '<p class="muted">You didn\'t add any debts — you can skip this. If you have credit cards or loans, go back and add them.</p><button class="btn" id="pp_next">Continue</button>'; wizShell(step, h); q('pp_next').onclick = function () { setStep(8, function () { load(); }); }; return; }
+  h += '<p class="muted">How much extra can you put toward debt each month, on top of minimums? Even a little changes everything.</p>';
+  h += '<span class="label">Extra per month</span><input id="pp_extra" type="number" inputmode="decimal" value="' + (extra || '') + '" placeholder="e.g. 300">';
+  h += '<div class="seg"><button id="pp_snow" class="' + (method === 'snowball' ? 'on' : '') + '">Snowball (smallest first)</button><button id="pp_aval" class="' + (method === 'avalanche' ? 'on' : '') + '">Avalanche (highest APR)</button></div>';
+  h += '<div id="pp_out"></div><button class="btn" id="pp_save">Save & continue</button>';
+  wizShell(step, h);
+  var m2 = method;
+  function draw() {
+    var ex = parseFloat(val('pp_extra')) || 0; var sim = simulate(debts, ex, m2);
+    var o = '';
+    if (sim && sim.stuck) o = '<p class="mt warn">Add any extra amount to see your debt-free date.</p>';
+    else if (sim) o = '<div class="mt center"><div class="muted">Debt-free by</div><div class="serifnum good" style="font-size:30px">' + monthAfter(sim.months) + '</div><div class="muted">' + sim.months + ' months · ' + fmt(sim.interest) + ' interest</div></div>';
+    q('pp_out').innerHTML = o;
+  }
+  q('pp_extra').addEventListener('input', draw);
+  q('pp_snow').onclick = function () { m2 = 'snowball'; q('pp_snow').classList.add('on'); q('pp_aval').classList.remove('on'); draw(); };
+  q('pp_aval').onclick = function () { m2 = 'avalanche'; q('pp_aval').classList.add('on'); q('pp_snow').classList.remove('on'); draw(); };
+  draw();
+  q('pp_save').onclick = function () { api('settings', 'PUT', { extra_debt_monthly: parseFloat(val('pp_extra')) || 0, payoff_method: m2 }).then(function () { setStep(8, function () { load(); }); }).catch(oops); };
+}
+
+/* ---------------- DEBTS INNER (wizard step 4 + Debts tab) ---------------- */
+function renderDebtsInner(step) {
+  var debts = S.debts || [];
+  var h = step ? '<h2>Add your debts</h2><p class="muted">Enter each credit card or loan. You can also paste several at once. Balances, APR and minimums are on your statement.</p>' : '';
+  if (S.debt_start > 0 && !step) {
+    h += '<div class="card"><div class="muted">Total debt remaining</div><div class="big">' + fmt(S.debt_total) + '</div><div class="bar"><i style="width:' + S.debt_paid_pct + '%"></i></div><div class="muted">Paid off ' + S.debt_paid_pct.toFixed(1) + '% since you started (' + fmt(S.debt_start) + ')</div></div>';
+  }
+  var inner = step ? '' : '<div class="card">';
+  inner += '<div ' + (step ? '' : '') + '>';
+  debts.forEach(function (d) {
+    var start = Number(d.starting_balance) || Number(d.balance);
+    var dp = start > 0 ? Math.max(0, Math.min(100, (start - d.balance) / start * 100)) : 0;
+    inner += '<div style="padding:12px 0;border-top:1px solid var(--line)"><div class="spread"><b>' + esc(d.name) + '</b><b class="amt serifnum" style="font-size:18px">' + fmt(d.balance) + '</b></div><div class="muted">' + Number(d.apr) + '% APR · min ' + fmt(d.min_payment) + '/mo</div><div class="bar"><i style="width:' + dp + '%"></i></div>';
+    if (!step) inner += '<div class="mt" style="margin-top:8px"><button class="btn small" data-pay="' + d.id + '">Log payment</button> <button class="btn small ghost" data-editd="' + d.id + '">Edit</button> <button class="del" data-deld="' + d.id + '">&#10005;</button></div>';
+    inner += '</div>';
+  });
+  inner += '<div class="mt"><input id="d_name" placeholder="Name (e.g. Visa)"><div class="row mt"><input id="d_bal" type="number" inputmode="decimal" placeholder="Balance"><input id="d_apr" type="number" inputmode="decimal" placeholder="APR %"><input id="d_min" type="number" inputmode="decimal" placeholder="Min/mo"></div><button class="btn ghost" id="d_add">Add debt</button></div>';
+  inner += '<p class="muted mt">Have a lot of them? <button class="link" id="d_paste">Paste a list</button> (one per line: Name, Balance, APR, Min)</p>';
+  inner += '<div id="d_pastebox" class="hidden"><textarea id="d_pastearea" placeholder="Visa, 4500, 24.99, 135&#10;Store Card, 3000, 26.99, 90"></textarea><button class="btn ghost" id="d_pasteadd">Add all</button></div>';
+  if (!step) inner += '</div>';
+
+  if (step) { wizShell(step, h + inner + '<button class="btn" id="d_next">Continue</button>'); }
+  else { q('view').innerHTML = '<div class="wrap">' + topbar() + h + inner + renderPayoffCard() + '</div>'; }
+
+  q('d_add').onclick = function () {
+    if (!val('d_name')) { toast('Give the debt a name'); return; }
+    api('debts', 'POST', { name: val('d_name'), balance: parseFloat(val('d_bal')) || 0, apr: parseFloat(val('d_apr')) || 0, min_payment: parseFloat(val('d_min')) || 0 }).then(function () { toast('Debt added'); return load(); }).catch(oops);
+  };
+  q('d_paste').onclick = function () { q('d_pastebox').classList.toggle('hidden'); };
+  q('d_pasteadd').onclick = function () {
+    var lines = val('d_pastearea').split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+    var arr = lines.map(function (l) { var p = l.split(','); return { name: (p[0] || '').trim(), balance: parseFloat(p[1]) || 0, apr: parseFloat(p[2]) || 0, min_payment: parseFloat(p[3]) || 0 }; }).filter(function (d) { return d.name; });
+    if (!arr.length) { toast('Nothing to add'); return; }
+    api('debts', 'POST', { debts: arr }).then(function (r) { toast('Added ' + r.inserted + ' debts'); return load(); }).catch(oops);
+  };
+  if (q('d_next')) q('d_next').onclick = function () { setStep(5, function () { load(); }); };
+  bindDebtActions();
+  bindPayoffCard();
+}
+
+/* ---------------- GOALS (wizard step 8 + Goals tab) ---------------- */
+function renderGoalsInner(step) {
+  var goals = S.goals || [];
+  var h = step ? '<h2>Set a savings goal</h2><p class="muted">Something to work toward — even $500 for emergencies changes how it feels. Optional, but powerful.</p>' : '';
+  var inner = step ? '' : '';
+  goals.forEach(function (g) {
+    var pct = g.target_amount > 0 ? Math.min(100, g.saved_amount / g.target_amount * 100) : 0;
+    inner += '<div style="padding:12px 0;border-top:1px solid var(--line)"><div class="spread"><b>' + esc(g.name) + '</b><b class="amt">' + fmt(g.saved_amount) + ' <span class="muted">/ ' + fmt(g.target_amount) + '</span></b></div><div class="bar"><i class="gd" style="width:' + pct + '%"></i></div><div class="spread"><span class="muted">' + pct.toFixed(0) + '%' + (g.target_date ? ' · by ' + dshort(g.target_date) : '') + '</span><span>' + (step ? '' : '<button class="btn small" data-addg="' + g.id + '">Add money</button> <button class="del" data-delg="' + g.id + '">&#10005;</button>') + '</span></div></div>';
+  });
+  inner += '<div class="mt"><input id="g_name" placeholder="Goal (e.g. Emergency fund)"><div class="row mt"><input id="g_target" type="number" inputmode="decimal" placeholder="Target $"><input id="g_saved" type="number" inputmode="decimal" placeholder="Saved so far"></div><span class="label">Target date (optional)</span><input id="g_date" type="date"><button class="btn ghost" id="g_add">Add goal</button></div>';
+
+  if (step) { wizShell(step, h + inner + '<button class="btn" id="g_finish">Finish setup</button>'); }
+  else { q('view').innerHTML = '<div class="wrap">' + topbar() + '<div class="card"><h2>Savings goals</h2>' + inner + '</div></div>'; }
+
+  q('g_add').onclick = function () {
+    if (!val('g_name')) { toast('Name your goal'); return; }
+    api('goals', 'POST', { name: val('g_name'), target_amount: parseFloat(val('g_target')) || 0, saved_amount: parseFloat(val('g_saved')) || 0, target_date: val('g_date') }).then(function () { toast('Goal added'); return load(); }).catch(oops);
+  };
+  if (q('g_finish')) q('g_finish').onclick = function () { setStep(9, function () { document.body.classList.remove('flow'); toast('You\'re all set!'); load(); }); };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-addg]'), function (el) { el.onclick = function () { var a = parseFloat(prompt('How much to add?') || ''); if (!(a > 0)) return; api('goals', 'PUT', { id: el.getAttribute('data-addg'), add: a }).then(function () { toast('Added ' + fmt(a)); return load(); }).catch(oops); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-delg]'), function (el) { el.onclick = function () { if (!confirm('Delete this goal?')) return; api('goals?id=' + el.getAttribute('data-delg'), 'DELETE').then(load).catch(oops); }; });
+}
+
+/* ---------------- MAIN SHELL ---------------- */
+function renderShell() {
+  var tabs = [{ t: 'home', ic: IC.home, n: 'Home' }, { t: 'plan', ic: IC.plan, n: 'Plan' }, { t: 'debts', ic: IC.debts, n: 'Debts' }, { t: 'goals', ic: IC.goals, n: 'Goals' }];
+  if (S.user.role === 'coach') tabs.push({ t: 'team', ic: IC.team, n: 'Coach' });
+  tabs.push({ t: 'more', ic: IC.more, n: 'More' });
+  var h = '';
+  tabs.forEach(function (t) { h += '<div class="tab' + (TAB === t.t ? ' on' : '') + '" data-t="' + t.t + '">' + t.ic + t.n + '</div>'; });
+  var bar = q('tabbar'); bar.innerHTML = h; bar.classList.remove('hidden');
+  Array.prototype.forEach.call(bar.querySelectorAll('.tab'), function (el) { el.onclick = function () { TAB = el.getAttribute('data-t'); renderShell(); render(); }; });
+}
 function render() {
   if (TAB === 'home') renderHome();
   else if (TAB === 'plan') renderPlan();
-  else if (TAB === 'debts') renderDebts();
-  else if (TAB === 'team') renderTeam();
+  else if (TAB === 'debts') renderDebtsInner(0);
+  else if (TAB === 'goals') renderGoalsInner(0);
+  else if (TAB === 'team') renderCoach();
   else renderMore();
   window.scrollTo(0, 0);
 }
+function topbar() { return '<div class="topbar"><span class="brand">Pocket <span class="accent">Planner</span></span><span class="pill">' + IC.flame + S.streak + ' day' + (S.streak === 1 ? '' : 's') + '</span></div>'; }
 
-function topbar() {
-  return '<div class="topbar"><span class="brand">Pocket <span class="accent">Planner</span></span><span class="pill">' + IC.flame + S.streak + ' day' + (S.streak === 1 ? '' : 's') + '</span></div>';
-}
-
-/* ---------- home ---------- */
+/* ---------------- HOME ---------------- */
 function renderHome() {
-  var st = S.settings || {};
-  var flexB = Number(S.flex_budget_effective) || 0;
+  var st = S.settings || {}; var flexB = Number(S.flex_budget_effective) || 0;
   var ready = st.next_payday && flexB > 0;
-  var h = '<div class="wrap">' + topbar();
-  h += '<div class="greet">Hello, ' + esc(S.user.display_name) + '</div>';
-
+  var h = '<div class="wrap">' + topbar() + '<div class="greet">Hello, ' + esc(S.user.display_name) + '</div>';
   if (!ready) {
-    h += '<div class="card"><h2>Let\'s set you up</h2><p class="muted">Head to the <b>Plan</b> tab to enter your paycheck, next payday, and spending budgets. Then this page becomes your daily home base.</p>';
-    h += '<button class="btn" id="go_plan">Set up my plan</button></div>';
+    h += '<div class="card"><h2>Let\'s set you up</h2><p class="muted">Add your paycheck, payday and budgets in the <b>Plan</b> tab. Then this becomes your daily home base.</p><button class="btn" id="go_plan">Go to Plan</button></div>';
   } else {
     var left = S.flex_left, spent = S.spent_this_period;
     var days = Math.max(1, Math.round((Date.parse(S.period.end + 'T12:00:00') - Date.parse(S.today + 'T12:00:00')) / 864e5));
-    var perDay = left > 0 ? left / days : 0;
-    var pct = flexB > 0 ? Math.min(100, spent / flexB * 100) : 0;
-    h += '<div class="card">';
-    h += '<div class="muted">Flexible money left</div>';
-    h += '<div class="big ' + (left < 0 ? 'warn' : '') + '">' + fmt(left) + '</div>';
-    h += '<div class="bar"><i class="' + (left < 0 ? 'over' : '') + '" style="width:' + pct + '%"></i></div>';
-    h += '<div class="spread"><span class="muted">Spent ' + fmt(spent) + ' of ' + fmt(flexB) + '</span><span class="muted">Payday ' + dlong(S.period.end) + '</span></div>';
+    var perDay = left > 0 ? left / days : 0; var pct = flexB > 0 ? Math.min(100, spent / flexB * 100) : 0;
+    h += '<div class="card"><div class="muted">Flexible money left</div><div class="big ' + (left < 0 ? 'warn' : '') + '">' + fmt(left) + '</div><div class="bar"><i class="' + (left < 0 ? 'over' : '') + '" style="width:' + pct + '%"></i></div><div class="spread"><span class="muted">Spent ' + fmt(spent) + ' of ' + fmt(flexB) + '</span><span class="muted">Payday ' + dlong(S.period.end) + '</span></div>';
     if (left >= 0) h += '<div class="mt"><span class="pill">' + fmt(perDay) + '/day for ' + days + ' more day' + (days === 1 ? '' : 's') + '</span></div>';
     else h += '<div class="mt warn" style="font-size:14px;font-weight:600">Over budget this paycheck — pause what you can.</div>';
     h += '</div>';
-
     var cbs = S.category_budgets || [];
     if (cbs.length) {
       h += '<div class="card"><h2>Budgets this paycheck</h2>';
-      cbs.forEach(function (b) {
-        var sp = (S.spent_by_category || {})[b.category] || 0;
-        var bpct = b.amount > 0 ? Math.min(100, sp / b.amount * 100) : 0;
-        var over = sp > Number(b.amount);
-        h += '<div style="padding:6px 0">';
-        h += '<div class="spread"><span style="font-size:14px">' + esc(b.category) + '</span><span class="muted" style="font-variant-numeric:tabular-nums"><b class="' + (over ? 'warn' : '') + '" style="color:' + (over ? '' : 'inherit') + '">' + fmt(sp) + '</b> of ' + fmt(b.amount) + '</span></div>';
-        h += '<div class="bar minibar"><i class="' + (over ? 'over' : '') + '" style="width:' + bpct + '%"></i></div>';
-        h += '</div>';
+      cbs.slice().sort(function (a, b) { return Number(b.amount) - Number(a.amount); }).forEach(function (b) {
+        var sp = (S.spent_by_category || {})[b.category] || 0; var bpct = b.amount > 0 ? Math.min(100, sp / b.amount * 100) : 0; var over = sp > Number(b.amount);
+        h += '<div style="padding:6px 0"><div class="spread"><span style="font-size:14px">' + esc(b.category) + '</span><span class="muted"><b class="' + (over ? 'warn' : '') + '">' + fmt(sp) + '</b> of ' + fmt(b.amount) + '</span></div><div class="bar"><i class="' + (over ? 'over' : '') + '" style="width:' + bpct + '%"></i></div></div>';
       });
       h += '</div>';
     }
   }
-
-  h += '<div class="card"><h2>Quick log</h2>';
-  h += '<div class="seg"><button id="k_spend" class="' + (QL.kind === 'spend' ? 'on' : '') + '">Spent</button><button id="k_income" class="' + (QL.kind === 'income' ? 'on' : '') + '">Earned extra</button></div>';
+  h += '<div class="card"><h2>Quick log</h2><div class="seg"><button id="k_spend" class="' + (QL.kind === 'spend' ? 'on' : '') + '">Spent</button><button id="k_income" class="' + (QL.kind === 'income' ? 'on' : '') + '">Earned extra</button></div>';
   h += '<input id="ql_amt" type="number" inputmode="decimal" placeholder="$ amount" step="0.01" min="0">';
-  var cats = QL.kind === 'spend' ? SPEND_CATS : INCOME_CATS;
-  if (cats.indexOf(QL.cat) === -1) QL.cat = cats[0];
-  h += '<div class="chips">';
-  cats.forEach(function (c) { h += '<span class="chip' + (QL.cat === c ? ' on' : '') + '" data-cat="' + c + '">' + c + '</span>'; });
-  h += '</div>';
-  h += '<input id="ql_note" placeholder="Note (optional)">';
-  h += '<button class="btn" id="ql_go">Log it</button>';
+  var chips = QL.kind === 'spend' ? COMMON_SPEND : INCOME_CATS;
+  if (chips.indexOf(QL.cat) === -1) QL.cat = chips[0];
+  h += '<div class="chips">'; chips.forEach(function (c) { h += '<span class="chip' + (QL.cat === c ? ' on' : '') + '" data-cat="' + esc(c) + '">' + c + '</span>'; }); h += '</div>';
+  if (QL.kind === 'spend') h += '<select id="ql_more"><option value="">More categories…</option>' + ALL_SPEND.filter(function (c) { return COMMON_SPEND.indexOf(c) === -1; }).map(function (c) { return '<option' + (QL.cat === c ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select>';
+  h += '<input id="ql_note" class="mt" placeholder="Note (optional)"><button class="btn" id="ql_go">Log it</button>';
   var todayLogged = (S.tx || []).some(function (t) { return t.spent_at === S.today; });
   if (!todayLogged) h += '<button class="btn ghost" id="ql_nospend">Mark today a no-spend day</button>';
-  if (S.extra_income_month > 0) h += '<p class="muted mt">Extra earned this month: <b class="good">' + fmt(S.extra_income_month) + '</b> — great fuel for the Debts tab.</p>';
+  if (S.extra_income_month > 0) h += '<p class="muted mt">Extra earned this month: <b class="good">' + fmt(S.extra_income_month) + '</b>.</p>';
   h += '</div>';
-
-  var recent = (S.tx || []).slice(0, 12);
+  var recent = (S.tx || []).filter(function (t) { return t.source !== 'import'; }).slice(0, 12);
   if (recent.length) {
     h += '<div class="card"><h2>Recent</h2>';
     recent.forEach(function (t) {
@@ -294,311 +685,204 @@ function renderHome() {
     });
     h += '</div>';
   }
-  h += '</div>';
-  q('view').innerHTML = h;
-
+  h += '</div>'; q('view').innerHTML = h;
   if (q('go_plan')) q('go_plan').onclick = function () { TAB = 'plan'; renderShell(); render(); };
   q('k_spend').onclick = function () { QL.kind = 'spend'; renderHome(); };
   q('k_income').onclick = function () { QL.kind = 'income'; renderHome(); };
-  Array.prototype.forEach.call(document.querySelectorAll('[data-cat]'), function (el) {
-    el.onclick = function () { QL.cat = el.getAttribute('data-cat'); renderHome(); };
-  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-cat]'), function (el) { el.onclick = function () { QL.cat = el.getAttribute('data-cat'); renderHome(); }; });
+  if (q('ql_more')) q('ql_more').onchange = function () { if (this.value) { QL.cat = this.value; renderHome(); } };
   q('ql_go').onclick = function () {
-    var amt = parseFloat(val('ql_amt'));
-    if (!(amt > 0)) { toast('Enter an amount first'); return; }
-    api('tx', 'POST', { amount: amt, category: QL.cat, note: val('ql_note'), kind: QL.kind })
-      .then(function () { toast(QL.kind === 'income' ? 'Extra income logged' : 'Logged'); return load(); }).catch(oops);
+    var amt = parseFloat(val('ql_amt')); if (!(amt > 0)) { toast('Enter an amount first'); return; }
+    api('tx', 'POST', { amount: amt, category: QL.cat, note: val('ql_note'), kind: QL.kind }).then(function () { toast(QL.kind === 'income' ? 'Extra income logged' : 'Logged'); return load(); }).catch(oops);
   };
-  if (q('ql_nospend')) q('ql_nospend').onclick = function () {
-    api('tx', 'POST', { kind: 'no_spend', category: 'No-Spend' }).then(function () { toast('No-spend day recorded — streak safe'); return load(); }).catch(oops);
-  };
-  Array.prototype.forEach.call(document.querySelectorAll('[data-deltx]'), function (el) {
-    el.onclick = function () {
-      if (!confirm('Delete this entry?')) return;
-      api('tx?id=' + el.getAttribute('data-deltx'), 'DELETE').then(load).catch(oops);
-    };
-  });
+  if (q('ql_nospend')) q('ql_nospend').onclick = function () { api('tx', 'POST', { kind: 'no_spend', category: 'No-Spend' }).then(function () { toast('No-spend day recorded'); return load(); }).catch(oops); };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-deltx]'), function (el) { el.onclick = function () { if (!confirm('Delete this entry?')) return; api('tx?id=' + el.getAttribute('data-deltx'), 'DELETE').then(load).catch(oops); }; });
 }
 
-/* ---------- plan ---------- */
+/* ---------------- PLAN ---------------- */
 function renderPlan() {
-  var st = S.settings || {};
-  var cbs = S.category_budgets || [];
-  var cbMap = {};
-  cbs.forEach(function (b) { cbMap[b.category] = Number(b.amount) || 0; });
-  var budgetSum = 0;
-  cbs.forEach(function (b) { budgetSum += Number(b.amount) || 0; });
-
+  var st = S.settings || {}; var cbs = S.category_budgets || []; var budgetSum = 0; cbs.forEach(function (b) { budgetSum += Number(b.amount) || 0; });
   var h = '<div class="wrap">' + topbar();
-  h += '<div class="card"><h2>Your paycheck</h2>';
-  h += '<span class="label">Take-home pay per paycheck</span><input id="p_pay" type="number" inputmode="decimal" value="' + (Number(st.pay_amount) || '') + '" placeholder="e.g. 2250">';
+  h += '<div class="card"><h2>Your paycheck</h2><span class="label">Take-home per paycheck</span><input id="p_pay" type="number" inputmode="decimal" value="' + (Number(st.pay_amount) || '') + '" placeholder="e.g. 2250">';
   h += '<span class="label">Next payday</span><input id="p_payday" type="date" value="' + (st.next_payday || '') + '">';
   h += '<span class="label">Flexible allowance per paycheck</span><input id="p_flex" type="number" inputmode="decimal" value="' + (Number(st.flex_budget) || '') + '" placeholder="e.g. 600">';
-  if (budgetSum > 0) h += '<p class="muted mt">Category budgets are set below, so their total (' + fmt(budgetSum) + ') is used as your allowance.</p>';
+  if (budgetSum > 0) h += '<p class="muted mt">Category budgets total ' + fmt(budgetSum) + ' — that\'s used as your allowance.</p>';
   h += '<button class="btn" id="p_save">Save plan</button></div>';
 
-  h += '<div class="card"><h2>Spending budgets</h2>';
-  h += '<p class="muted">Give each category an amount per paycheck. Leave a category at 0 to skip it — your Home screen will track each one.</p><div class="mt"></div>';
-  SPEND_CATS.forEach(function (c, idx) {
-    h += '<div class="catrow"><span class="name">' + c + '</span><input id="cb_' + idx + '" type="number" inputmode="decimal" min="0" placeholder="0" value="' + (cbMap[c] || '') + '"></div>';
-  });
-  h += '<div class="tx mt" style="border-top:1px solid var(--line)"><b>Total per paycheck</b><b class="amt" id="cb_total">' + fmt(budgetSum) + '</b></div>';
-  h += '<button class="btn" id="cb_save">Save budgets</button></div>';
+  h += '<div class="card"><h2>Import statements</h2><p class="muted">Upload a bank/card CSV to auto-fill months of spending. ' + (S.imported_count > 0 ? '<b>' + S.imported_count + ' imported so far.</b>' : '') + '</p><button class="btn ghost" id="p_import">Upload a CSV</button>';
+  if (S.imported_count > 0) h += '<button class="link mt" id="p_clearimp" style="display:block">Remove all imported transactions</button>';
+  h += '</div>';
+
+  h += '<div class="card"><h2>Spending budgets</h2><p class="muted">Set an amount per category, or let us build it from your statements.</p><button class="btn ghost" id="p_bb">Build budget from spending</button><div class="mt"></div>';
+  var avg = S.avg_by_category || {}; var existing = {}; cbs.forEach(function (b) { existing[b.category] = Number(b.amount); });
+  var rowCats = Object.keys(existing); Object.keys(avg).forEach(function (c) { if (rowCats.indexOf(c) === -1 && avg[c] > 0) rowCats.push(c); });
+  if (!rowCats.length) rowCats = COMMON_SPEND.slice(0, 5);
+  rowCats.forEach(function (c, idx) { h += '<div class="catrow"><span class="name">' + c + '</span><input id="pb_' + idx + '" data-cat="' + esc(c) + '" type="number" inputmode="decimal" value="' + (existing[c] || '') + '" placeholder="0"></div>'; });
+  h += '<span class="label">Add another category</span><select id="pb_add"><option value="">Choose…</option>' + ALL_SPEND.filter(function (c) { return rowCats.indexOf(c) === -1; }).map(function (c) { return '<option>' + c + '</option>'; }).join('') + '</select>';
+  h += '<div class="tx mt" style="border-top:1px solid var(--line)"><b>Total per paycheck</b><b class="amt" id="pb_total">$0</b></div><button class="btn" id="pb_save">Save budgets</button></div>';
 
   h += '<div class="card"><h2>Monthly bills</h2>';
-  var bills = S.bills || [], monthly = 0;
-  bills.forEach(function (b) { monthly += Number(b.amount) || 0; });
-  if (!bills.length) h += '<p class="muted">Add your fixed bills — rent, car, phone, insurance, childcare, subscriptions…</p>';
-  bills.forEach(function (b) {
-    h += '<div class="tx"><div><div style="font-size:14px">' + esc(b.name) + '</div><div class="muted">' + (b.due_day ? 'Due day ' + b.due_day : '') + '</div></div><div><span class="amt">' + fmt(b.amount) + '</span> <button class="del" data-delbill="' + b.id + '">&#10005;</button></div></div>';
-  });
-  h += '<div class="row mt"><input id="b_name" placeholder="Bill name"><input id="b_amt" type="number" inputmode="decimal" placeholder="$/month" style="max-width:110px"><input id="b_due" type="number" inputmode="numeric" placeholder="Due" style="max-width:70px"></div>';
-  h += '<button class="btn ghost" id="b_add">Add bill</button></div>';
+  var bills = S.bills || [], monthly = 0; bills.forEach(function (b) { monthly += Number(b.amount) || 0; });
+  if (!bills.length) h += '<p class="muted">Add fixed bills — rent, car, phone, insurance, childcare…</p>';
+  bills.forEach(function (b) { h += '<div class="tx"><div><div style="font-size:14px">' + esc(b.name) + '</div><div class="muted">' + (b.due_day ? 'Due day ' + b.due_day : '') + '</div></div><div><span class="amt">' + fmt(b.amount) + '</span> <button class="del" data-delbill="' + b.id + '">&#10005;</button></div></div>'; });
+  h += '<div class="row mt"><input id="b_name" placeholder="Bill name"><input id="b_amt" type="number" inputmode="decimal" placeholder="$/mo" style="max-width:100px"><input id="b_due" type="number" inputmode="numeric" placeholder="Due" style="max-width:66px"></div><button class="btn ghost" id="b_add">Add bill</button></div>';
 
-  var pay = Number(st.pay_amount) || 0;
-  var flexEff = Number(S.flex_budget_effective) || 0;
-  var perPaycheck = monthly * 12 / 26;
-  var room = pay - perPaycheck - flexEff;
-  h += '<div class="card"><h2>The math, each paycheck</h2>';
-  h += '<div class="tx"><span>Take-home</span><span class="amt">' + fmt(pay) + '</span></div>';
-  h += '<div class="tx"><span>Bills share <span class="muted">(' + fmt(monthly) + '/mo)</span></span><span class="amt">&minus;' + fmt(perPaycheck) + '</span></div>';
-  h += '<div class="tx"><span>Flexible allowance' + (budgetSum > 0 ? ' <span class="muted">(budgets)</span>' : '') + '</span><span class="amt">&minus;' + fmt(flexEff) + '</span></div>';
-  h += '<div class="tx"><b>Left for debt + savings</b><b class="amt ' + (room < 0 ? 'warn' : 'good') + '">' + fmt(room) + '</b></div>';
-  if (room < 0) h += '<p class="muted mt warn">This plan spends more than you make. Trim bills or budgets until this number is positive.</p>';
-  else if (pay > 0) h += '<p class="muted mt">That\'s ' + fmt(room * 26 / 12) + '/month you can put toward debt. Set it as your extra payment in the Debts tab.</p>';
-  h += '</div></div>';
-  q('view').innerHTML = h;
+  var pay = Number(st.pay_amount) || 0; var flexEff = Number(S.flex_budget_effective) || 0; var perPaycheck = monthly * 12 / 26; var room = pay - perPaycheck - flexEff;
+  h += '<div class="card"><h2>The math, each paycheck</h2><div class="tx"><span>Take-home</span><span class="amt">' + fmt(pay) + '</span></div><div class="tx"><span>Bills share <span class="muted">(' + fmt(monthly) + '/mo)</span></span><span class="amt">&minus;' + fmt(perPaycheck) + '</span></div><div class="tx"><span>Flexible allowance</span><span class="amt">&minus;' + fmt(flexEff) + '</span></div><div class="tx"><b>Left for debt + savings</b><b class="amt ' + (room < 0 ? 'warn' : 'good') + '">' + fmt(room) + '</b></div>';
+  if (room < 0) h += '<p class="muted mt warn">This plan spends more than you make. Trim bills or budgets until this is positive.</p>';
+  else if (pay > 0) h += '<p class="muted mt">That\'s ' + fmt(room * 26 / 12) + '/month toward debt and savings.</p>';
+  h += '</div></div>'; q('view').innerHTML = h;
 
-  function cbTotal() {
-    var t = 0;
-    SPEND_CATS.forEach(function (c, idx) { t += parseFloat(val('cb_' + idx)) || 0; });
-    q('cb_total').textContent = fmt(t);
-  }
-  SPEND_CATS.forEach(function (c, idx) { q('cb_' + idx).addEventListener('input', cbTotal); });
-
-  q('p_save').onclick = function () {
-    api('settings', 'PUT', { pay_amount: parseFloat(val('p_pay')) || 0, next_payday: val('p_payday'), flex_budget: parseFloat(val('p_flex')) || 0 })
-      .then(function () { toast('Plan saved'); return load(); }).catch(oops);
-  };
-  q('cb_save').onclick = function () {
-    var list = SPEND_CATS.map(function (c, idx) { return { category: c, amount: parseFloat(val('cb_' + idx)) || 0 }; });
-    api('budgets', 'PUT', { budgets: list })
-      .then(function () { toast('Budgets saved'); return load(); }).catch(oops);
-  };
-  q('b_add').onclick = function () {
-    if (!val('b_name')) { toast('Give the bill a name'); return; }
-    api('bills', 'POST', { name: val('b_name'), amount: parseFloat(val('b_amt')) || 0, due_day: val('b_due') })
-      .then(function () { toast('Bill added'); return load(); }).catch(oops);
-  };
-  Array.prototype.forEach.call(document.querySelectorAll('[data-delbill]'), function (el) {
-    el.onclick = function () { if (!confirm('Remove this bill?')) return; api('bills?id=' + el.getAttribute('data-delbill'), 'DELETE').then(load).catch(oops); };
-  });
+  function pbTotal() { var t = 0; rowCats.forEach(function (c, idx) { t += parseFloat(val('pb_' + idx)) || 0; }); q('pb_total').textContent = fmt(t); }
+  rowCats.forEach(function (c, idx) { q('pb_' + idx).addEventListener('input', pbTotal); }); pbTotal();
+  q('pb_add').onchange = function () { if (!this.value) return; api('budgets', 'PUT', { budgets: rowCats.map(function (c, idx) { return { category: q('pb_' + idx).getAttribute('data-cat'), amount: parseFloat(val('pb_' + idx)) || 0 }; }).concat([{ category: this.value, amount: 0 }]) }).then(load).catch(oops); };
+  q('p_save').onclick = function () { api('settings', 'PUT', { pay_amount: parseFloat(val('p_pay')) || 0, next_payday: val('p_payday'), flex_budget: parseFloat(val('p_flex')) || 0 }).then(function () { toast('Plan saved'); return load(); }).catch(oops); };
+  q('p_import').onclick = function () { pickCSV(); };
+  if (q('p_clearimp')) q('p_clearimp').onclick = function () { if (!confirm('Remove all imported transactions? Your manual entries stay.')) return; api('import', 'DELETE').then(function (r) { toast('Removed ' + r.deleted); return load(); }).catch(oops); };
+  q('p_bb').onclick = function () { renderBudgetBuilder(0); };
+  q('pb_save').onclick = function () { api('budgets', 'PUT', { budgets: rowCats.map(function (c, idx) { return { category: q('pb_' + idx).getAttribute('data-cat'), amount: parseFloat(val('pb_' + idx)) || 0 }; }) }).then(function () { toast('Budgets saved'); return load(); }).catch(oops); };
+  q('b_add').onclick = function () { if (!val('b_name')) { toast('Give the bill a name'); return; } api('bills', 'POST', { name: val('b_name'), amount: parseFloat(val('b_amt')) || 0, due_day: val('b_due') }).then(function () { toast('Bill added'); return load(); }).catch(oops); };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-delbill]'), function (el) { el.onclick = function () { if (!confirm('Remove this bill?')) return; api('bills?id=' + el.getAttribute('data-delbill'), 'DELETE').then(load).catch(oops); }; });
 }
 
-/* ---------- debts ---------- */
-function simulate(debts, extra, method) {
-  var list = debts.filter(function (d) { return Number(d.balance) > 0; })
-    .map(function (d) { return { name: d.name, bal: Number(d.balance), apr: Number(d.apr) || 0, min: Number(d.min_payment) || 0 }; });
-  if (!list.length) return null;
-  list.sort(function (a, b) { return method === 'avalanche' ? b.apr - a.apr : a.bal - b.bal; });
-  var totalPay = extra;
-  list.forEach(function (d) { totalPay += d.min; });
-  if (!(totalPay > 0)) return { stuck: true };
-  var months = 0, interest = 0, payoffs = [];
-  while (months < 600) {
-    var alive = list.filter(function (d) { return d.bal > 0.005; });
-    if (!alive.length) break;
-    months++;
-    alive.forEach(function (d) { var it = d.bal * d.apr / 100 / 12; d.bal += it; interest += it; });
-    var budget = totalPay;
-    alive.forEach(function (d) { var p = Math.min(d.bal, d.min); d.bal -= p; budget -= p; });
-    for (var j = 0; j < list.length && budget > 0; j++) {
-      if (list[j].bal > 0.005) { var p2 = Math.min(list[j].bal, budget); list[j].bal -= p2; budget -= p2; }
-    }
-    list.forEach(function (d) {
-      if (d.bal <= 0.005 && !d.done) { d.done = true; payoffs.push({ name: d.name, month: months }); }
-    });
+/* ---------------- DEBTS payoff card (Debts tab) ---------------- */
+function renderPayoffCard() {
+  var debts = S.debts || []; if (!debts.length) return '';
+  var st = S.settings || {}; var extra = Number(st.extra_debt_monthly) || 0; var method = st.payoff_method || 'snowball';
+  var h = '<div class="card"><h2>Payoff plan</h2><span class="label">Extra toward debt each month</span><input id="x_extra" type="number" inputmode="decimal" value="' + (extra || '') + '" placeholder="e.g. 400">';
+  h += '<div class="seg"><button id="m_snow" class="' + (method === 'snowball' ? 'on' : '') + '">Snowball</button><button id="m_aval" class="' + (method === 'avalanche' ? 'on' : '') + '">Avalanche</button></div><button class="btn" id="x_save">Update plan</button>';
+  var sim = simulate(debts, extra, method); var other = simulate(debts, extra, method === 'snowball' ? 'avalanche' : 'snowball');
+  if (sim && sim.stuck) h += '<p class="mt warn"><b>Minimums alone can\'t beat the interest.</b> Add any extra — even $50 changes everything.</p>';
+  else if (sim) {
+    h += '<div class="mt center"><div class="muted">Debt-free by</div><div class="serifnum good" style="font-size:32px">' + monthAfter(sim.months) + '</div><div class="muted">' + sim.months + ' months · ' + fmt(sim.interest) + ' total interest</div></div>';
+    if (other && !other.stuck) { var diff = other.interest - sim.interest; h += '<p class="muted mt center">' + (method === 'snowball' ? 'Avalanche' : 'Snowball') + ' instead: ' + other.months + ' months, ' + fmt(other.interest) + ' interest (' + (diff >= 0 ? 'you save ' + fmt(Math.abs(diff)) : 'costs ' + fmt(Math.abs(diff)) + ' more') + ' your way).</p>'; }
+    if (sim.payoffs.length) { h += '<div class="mt"><span class="label">Payoff order</span>'; sim.payoffs.forEach(function (p, i) { h += '<div class="tx"><span>' + (i + 1) + '. ' + esc(p.name) + '</span><span class="muted">' + monthAfter(p.month) + '</span></div>'; }); h += '</div>'; }
   }
-  if (months >= 600) return { stuck: true };
-  return { months: months, interest: interest, payoffs: payoffs };
+  return h + '</div>';
+}
+function bindPayoffCard() {
+  if (!q('x_save')) return;
+  var method = (S.settings || {}).payoff_method || 'snowball'; var m2 = method;
+  q('m_snow').onclick = function () { m2 = 'snowball'; q('m_snow').classList.add('on'); q('m_aval').classList.remove('on'); };
+  q('m_aval').onclick = function () { m2 = 'avalanche'; q('m_aval').classList.add('on'); q('m_snow').classList.remove('on'); };
+  q('x_save').onclick = function () { api('settings', 'PUT', { extra_debt_monthly: parseFloat(val('x_extra')) || 0, payoff_method: m2 }).then(function () { toast('Plan updated'); return load(); }).catch(oops); };
+}
+function bindDebtActions() {
+  Array.prototype.forEach.call(document.querySelectorAll('[data-pay]'), function (el) { el.onclick = function () { var amt = parseFloat(prompt('Payment amount?') || ''); if (!(amt > 0)) return; api('debts', 'PUT', { id: el.getAttribute('data-pay'), payment: amt }).then(function (r) { toast(r.balance <= 0 ? 'Paid off. Incredible!' : 'Payment logged'); return load(); }).catch(oops); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-editd]'), function (el) { el.onclick = function () { var id = el.getAttribute('data-editd'); var d = (S.debts || []).find(function (x) { return x.id === id; }); if (!d) return; var nb = prompt('Current balance for ' + d.name + ':', d.balance); if (nb === null) return; api('debts', 'PUT', { id: id, balance: parseFloat(nb) || 0 }).then(load).catch(oops); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-deld]'), function (el) { el.onclick = function () { if (!confirm('Remove this debt?')) return; api('debts?id=' + el.getAttribute('data-deld'), 'DELETE').then(load).catch(oops); }; });
 }
 
-function renderDebts() {
-  var st = S.settings || {};
-  var debts = S.debts || [];
-  var extra = Number(st.extra_debt_monthly) || 0;
-  var method = st.payoff_method || 'snowball';
-  var h = '<div class="wrap">' + topbar();
+/* ---------------- COACH HUB ---------------- */
+function renderCoach() {
+  var h = '<div class="wrap"><div class="topbar"><span class="brand">Coach <span class="accent">Hub</span></span><button class="btn small ghost" id="c_refresh">Refresh</button></div>';
+  if (!COACH) { h += '<div class="card muted">Loading dashboard…</div></div>'; q('view').innerHTML = h; loadCoach(); return; }
+  var k = COACH.kpi; var ms = COACH.members;
+  var avgStreak = k.members ? (k.streak_sum / k.members) : 0;
+  h += '<div class="kpis">';
+  h += kpiTile(k.members, 'Members');
+  h += kpiTile(fmt0(k.debt_total), 'Debt left');
+  h += kpiTile(fmt0(k.paid_down), 'Paid down');
+  h += kpiTile(avgStreak.toFixed(0), 'Avg streak');
+  h += kpiTile(k.needs_attention, 'Need attention');
+  h += kpiTile(fmt0(k.saved), 'Saved');
+  h += '</div>';
+  if (k.sharing_detail < k.members) h += '<p class="muted center" style="margin:-6px 0 12px">Dollar figures reflect the ' + k.sharing_detail + ' of ' + k.members + ' members sharing details. Others share streaks only.</p>';
 
-  if (S.debt_start > 0) {
-    var pct = S.debt_paid_pct;
-    h += '<div class="card"><div class="muted">Total debt remaining</div><div class="big">' + fmt(S.debt_total) + '</div>';
-    h += '<div class="bar"><i style="width:' + pct + '%"></i></div>';
-    h += '<div class="muted">Paid off ' + pct.toFixed(1) + '% since you started (' + fmt(S.debt_start) + ')</div></div>';
-  }
-
-  h += '<div class="card"><h2>Your debts</h2>';
-  if (!debts.length) h += '<p class="muted">Add each credit card or loan — name, current balance, APR, and minimum payment (they\'re on your statement).</p>';
-  debts.forEach(function (d) {
-    var start = Number(d.starting_balance) || Number(d.balance);
-    var dp = start > 0 ? Math.max(0, Math.min(100, (start - d.balance) / start * 100)) : 0;
-    h += '<div style="padding:12px 0;border-top:1px solid var(--line)">';
-    h += '<div class="spread"><b>' + esc(d.name) + '</b><b class="amt serifnum" style="font-size:18px">' + fmt(d.balance) + '</b></div>';
-    h += '<div class="muted">' + Number(d.apr) + '% APR · min ' + fmt(d.min_payment) + '/mo</div>';
-    h += '<div class="bar"><i style="width:' + dp + '%"></i></div>';
-    h += '<div class="mt" style="margin-top:8px"><button class="btn small" data-pay="' + d.id + '">Log payment</button> <button class="btn small ghost" data-editd="' + d.id + '">Edit</button> <button class="del" data-deld="' + d.id + '">&#10005;</button></div>';
-    h += '</div>';
-  });
-  h += '<div class="mt"><input id="d_name" placeholder="Name (e.g. Visa, Capital One)">';
-  h += '<div class="row mt"><input id="d_bal" type="number" inputmode="decimal" placeholder="Balance"><input id="d_apr" type="number" inputmode="decimal" placeholder="APR %"><input id="d_min" type="number" inputmode="decimal" placeholder="Min/mo"></div>';
-  h += '<button class="btn ghost" id="d_add">Add debt</button></div></div>';
-
-  if (debts.length) {
-    h += '<div class="card"><h2>Payoff plan</h2>';
-    h += '<span class="label">Extra toward debt each month (on top of minimums)</span><input id="x_extra" type="number" inputmode="decimal" value="' + (extra || '') + '" placeholder="e.g. 400">';
-    h += '<div class="seg"><button id="m_snow" class="' + (method === 'snowball' ? 'on' : '') + '">Snowball (smallest first)</button><button id="m_aval" class="' + (method === 'avalanche' ? 'on' : '') + '">Avalanche (highest APR)</button></div>';
-    h += '<button class="btn" id="x_save">Update plan</button>';
-    var sim = simulate(debts, extra, method);
-    var other = simulate(debts, extra, method === 'snowball' ? 'avalanche' : 'snowball');
-    if (sim && sim.stuck) {
-      h += '<p class="mt warn"><b>Minimums alone can\'t beat the interest.</b> Add any extra amount — even $50/month changes everything.</p>';
-    } else if (sim) {
-      h += '<div class="mt center"><div class="muted">Debt-free by</div><div class="serifnum good" style="font-size:32px">' + monthAfter(sim.months) + '</div>';
-      h += '<div class="muted">' + sim.months + ' months · ' + fmt(sim.interest) + ' total interest</div></div>';
-      if (other && !other.stuck) {
-        var diff = other.interest - sim.interest;
-        h += '<p class="muted mt center">' + (method === 'snowball' ? 'Avalanche' : 'Snowball') + ' instead: ' + other.months + ' months, ' + fmt(other.interest) + ' interest (' + (diff >= 0 ? 'you save ' + fmt(Math.abs(diff)) : 'costs ' + fmt(Math.abs(diff)) + ' more') + ' your way)</p>';
-      }
-      if (sim.payoffs.length) {
-        h += '<div class="mt"><span class="label">Payoff order</span>';
-        sim.payoffs.forEach(function (p, idx) { h += '<div class="tx"><span>' + (idx + 1) + '. ' + esc(p.name) + '</span><span class="muted">' + monthAfter(p.month) + '</span></div>'; });
-        h += '</div>';
-      }
-    }
+  // flags
+  var flagged = ms.filter(function (m) { return m.flags && m.flags.length; });
+  if (flagged.length) {
+    h += '<div class="card"><h2>Bring these up</h2>';
+    flagged.forEach(function (m) { h += '<div class="flagrow"><span class="dot"></span><div><b>' + esc(m.display_name) + '</b> ' + m.flags.map(function (f) { return '<span class="tag">' + esc(f) + '</span>'; }).join('') + '</div></div>'; });
     h += '</div>';
   }
-  h += '</div>';
-  q('view').innerHTML = h;
 
-  q('d_add').onclick = function () {
-    if (!val('d_name')) { toast('Give the debt a name'); return; }
-    api('debts', 'POST', { name: val('d_name'), balance: parseFloat(val('d_bal')) || 0, apr: parseFloat(val('d_apr')) || 0, min_payment: parseFloat(val('d_min')) || 0 })
-      .then(function () { toast('Debt added — now let\'s clear it'); return load(); }).catch(oops);
-  };
-  Array.prototype.forEach.call(document.querySelectorAll('[data-pay]'), function (el) {
-    el.onclick = function () {
-      var amt = parseFloat(prompt('Payment amount?') || '');
-      if (!(amt > 0)) return;
-      api('debts', 'PUT', { id: el.getAttribute('data-pay'), payment: amt })
-        .then(function (r) { toast(r.balance <= 0 ? 'Paid off. Incredible work!' : 'Payment logged — ' + fmt(amt) + ' closer to free'); return load(); }).catch(oops);
-    };
+  // filters
+  h += '<div class="card"><div class="seg"><button data-cf="all" class="' + (COACHFILTER === 'all' ? 'on' : '') + '">All (' + ms.length + ')</button><button data-cf="attention" class="' + (COACHFILTER === 'attention' ? 'on' : '') + '">Needs attention (' + flagged.length + ')</button><button data-cf="ontrack" class="' + (COACHFILTER === 'ontrack' ? 'on' : '') + '">On track (' + (ms.length - flagged.length) + ')</button></div>';
+  h += '<input id="c_search" placeholder="Search members…" value="' + esc(COACHSEARCH) + '"><button class="btn ghost mt" id="c_digest">Copy weekly digest</button></div>';
+
+  var shown = ms.filter(function (m) {
+    if (COACHFILTER === 'attention' && !(m.flags && m.flags.length)) return false;
+    if (COACHFILTER === 'ontrack' && (m.flags && m.flags.length)) return false;
+    if (COACHSEARCH && m.display_name.toLowerCase().indexOf(COACHSEARCH.toLowerCase()) === -1) return false;
+    return true;
   });
-  Array.prototype.forEach.call(document.querySelectorAll('[data-editd]'), function (el) {
-    el.onclick = function () {
-      var id = el.getAttribute('data-editd');
-      var d = (S.debts || []).find(function (x) { return x.id === id; });
-      if (!d) return;
-      var nb = prompt('Current balance for ' + d.name + ':', d.balance);
-      if (nb === null) return;
-      api('debts', 'PUT', { id: id, balance: parseFloat(nb) || 0 }).then(load).catch(oops);
-    };
-  });
-  Array.prototype.forEach.call(document.querySelectorAll('[data-deld]'), function (el) {
-    el.onclick = function () { if (!confirm('Remove this debt?')) return; api('debts?id=' + el.getAttribute('data-deld'), 'DELETE').then(load).catch(oops); };
-  });
-  if (q('x_save')) {
-    var newMethod = method;
-    q('m_snow').onclick = function () { newMethod = 'snowball'; q('m_snow').classList.add('on'); q('m_aval').classList.remove('on'); };
-    q('m_aval').onclick = function () { newMethod = 'avalanche'; q('m_aval').classList.add('on'); q('m_snow').classList.remove('on'); };
-    q('x_save').onclick = function () {
-      api('settings', 'PUT', { extra_debt_monthly: parseFloat(val('x_extra')) || 0, payoff_method: newMethod })
-        .then(function () { toast('Plan updated'); return load(); }).catch(oops);
-    };
+  if (!shown.length) h += '<div class="card muted">No members match.</div>';
+  shown.forEach(function (m) { h += coachCard(m); });
+  h += '</div>'; q('view').innerHTML = h;
+
+  q('c_refresh').onclick = loadCoach;
+  q('c_digest').onclick = function () { copyDigest(); };
+  q('c_search').oninput = function () { COACHSEARCH = this.value; var pos = this.selectionStart; renderCoach(); var s = q('c_search'); if (s) { s.focus(); s.setSelectionRange(pos, pos); } };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-cf]'), function (el) { el.onclick = function () { COACHFILTER = el.getAttribute('data-cf'); renderCoach(); }; });
+}
+function kpiTile(n, k) { return '<div class="kpi"><div class="n">' + n + '</div><div class="k">' + k + '</div></div>'; }
+function trendArrow(cur, prev) {
+  if (prev <= 0) return '';
+  var d = cur - prev; var pct = Math.round(Math.abs(d) / prev * 100);
+  if (Math.abs(d) < 1) return '<span class="trend muted">flat vs last</span>';
+  var up = d > 0;
+  return '<span class="trend ' + (up ? 'warn' : 'good') + '">' + (up ? IC.up : IC.down) + ' ' + pct + '% ' + (up ? 'more' : 'less') + ' vs last</span>';
+}
+function coachCard(m) {
+  var tierLbl = m.share_tier === 'full' ? 'sharing all' : m.share_tier === 'summary' ? 'sharing summary' : 'streaks only';
+  var h = '<div class="card"><div class="spread"><b style="font-size:16px">' + esc(m.display_name) + '</b><span class="pill' + (m.flags && m.flags.length ? ' warn' : ' good') + '">' + (m.flags && m.flags.length ? m.flags.length + ' flag' + (m.flags.length > 1 ? 's' : '') : 'on track') + '</span></div>';
+  h += '<div class="muted" style="margin:2px 0 6px">' + tierLbl + (m.primary_goal ? ' · goal: ' + esc(m.primary_goal) : '') + '</div>';
+  var quiet = (m.last_logged && m.last_logged < m.today) ? Math.round((Date.parse(m.today) - Date.parse(m.last_logged)) / 864e5) : 0;
+  h += '<div style="font-size:14px">' + m.streak + '-day streak' + (m.last_logged ? ' · last log ' + dshort(m.last_logged) : ' · no logs yet') + (quiet >= 3 ? ' <span class="warn">(quiet ' + quiet + 'd)</span>' : '') + '</div>';
+  h += '<div class="mt"><span class="muted">Debt progress</span><div class="bar"><i style="width:' + (m.debt_paid_pct || 0) + '%"></i></div><span class="muted">' + (m.debt_paid_pct || 0).toFixed(1) + '% paid' + (m.debt_total !== undefined ? ' · ' + fmt(m.debt_total) + ' left' : '') + (m.debt_paid_month ? ' · ' + fmt(m.debt_paid_month) + ' this month' : '') + '</span></div>';
+  if (m.flex_budget !== undefined) {
+    var pct = m.flex_budget > 0 ? Math.min(100, m.spent_this_period / m.flex_budget * 100) : 0;
+    h += '<div class="mt"><div class="spread"><span class="muted">This paycheck: ' + fmt(m.spent_this_period) + ' of ' + fmt(m.flex_budget) + '</span>' + trendArrow(m.spent_this_period, m.spent_prev_period) + '</div><div class="bar"><i class="' + (m.flex_left < 0 ? 'over' : '') + '" style="width:' + pct + '%"></i></div><span class="' + (m.flex_left < 0 ? 'warn' : 'good') + '" style="font-size:13px;font-weight:600">' + fmt(m.flex_left) + ' left</span>';
+    if (m.imported_count) h += ' <span class="muted">· ' + m.imported_count + ' imported</span>';
+    h += '</div>';
   }
-}
-
-/* ---------- team (coach) ---------- */
-function renderTeam() {
-  var h = '<div class="wrap">' + topbar();
-  h += '<div class="spread" style="margin:6px 0 12px"><h2 style="margin:0">Your team</h2><button class="btn small ghost" id="t_refresh">Refresh</button></div>';
-  if (!COACH) h += '<div class="card muted">Loading team…</div>';
-  else if (!COACH.members.length) h += '<div class="card muted">No members yet. Share the app link and the member invite code (see More tab).</div>';
-  else {
-    COACH.members.forEach(function (m) {
-      h += '<div class="card">';
-      h += '<div class="spread"><b style="font-size:16px">' + esc(m.display_name) + '</b><span class="pill">' + (m.share_tier === 'full' ? 'sharing all' : m.share_tier === 'summary' ? 'sharing summary' : 'streaks only') + '</span></div>';
-      var quiet = m.last_logged && m.today && m.last_logged < m.today ? Math.round((Date.parse(m.today) - Date.parse(m.last_logged)) / 864e5) : 0;
-      h += '<div class="mt" style="font-size:14px">' + m.streak + '-day logging streak' + (m.last_logged ? ' · last log ' + dshort(m.last_logged) : ' · no logs yet');
-      if (quiet >= 3) h += ' <span class="warn"><b>· quiet for ' + quiet + ' days — check in?</b></span>';
-      h += '</div>';
-      h += '<div class="mt"><span class="muted">Debt progress</span><div class="bar"><i style="width:' + (m.debt_paid_pct || 0) + '%"></i></div><span class="muted">' + (m.debt_paid_pct || 0).toFixed(1) + '% paid off' + (m.debt_total !== undefined ? ' · ' + fmt(m.debt_total) + ' to go' : '') + '</span></div>';
-      if (m.flex_budget !== undefined) {
-        var pct = m.flex_budget > 0 ? Math.min(100, m.spent_this_period / m.flex_budget * 100) : 0;
-        h += '<div class="mt"><span class="muted">This paycheck: spent ' + fmt(m.spent_this_period) + ' of ' + fmt(m.flex_budget) + '</span><div class="bar"><i class="' + (m.flex_left < 0 ? 'over' : '') + '" style="width:' + pct + '%"></i></div>';
-        h += '<span class="' + (m.flex_left < 0 ? 'warn' : 'good') + '" style="font-size:14px;font-weight:600">' + fmt(m.flex_left) + ' left</span>';
-        if (m.extra_income_month > 0) h += ' <span class="muted">· ' + fmt(m.extra_income_month) + ' extra earned this month</span>';
-        h += '</div>';
-      }
-      if (m.tx && m.tx.length) {
-        h += '<div class="mt"><span class="label">Recent activity</span>';
-        m.tx.slice(0, 8).forEach(function (t) {
-          var lbl = t.kind === 'no_spend' ? 'No-spend day' : esc(t.category) + (t.note ? ' · ' + esc(t.note) : '');
-          h += '<div class="tx"><div><div style="font-size:14px">' + lbl + '</div><div class="muted">' + dshort(t.spent_at) + '</div></div><span class="amt' + (t.kind === 'income' ? ' plus' : '') + '">' + (t.kind === 'income' ? '+' : '') + fmt(t.amount) + '</span></div>';
-        });
-        h += '</div>';
-      }
-      h += '</div>';
-    });
+  if (m.saved_total !== undefined && m.goal_target > 0) { var gp = Math.min(100, m.saved_total / m.goal_target * 100); h += '<div class="mt"><span class="muted">Savings ' + fmt(m.saved_total) + ' of ' + fmt(m.goal_target) + '</span><div class="bar"><i class="gd" style="width:' + gp + '%"></i></div></div>'; }
+  if (m.avg_by_category && Object.keys(m.avg_by_category).length) {
+    var cats = Object.keys(m.avg_by_category).sort(function (a, b) { return m.avg_by_category[b] - m.avg_by_category[a]; }).slice(0, 4);
+    h += '<div class="mt"><span class="label">Top monthly averages</span>' + cats.map(function (c) { return '<span class="tag gd">' + esc(c) + ' ' + fmt0(m.avg_by_category[c]) + '</span>'; }).join('') + '</div>';
   }
-  h += '</div>';
-  q('view').innerHTML = h;
-  q('t_refresh').onclick = loadTeam;
-  if (!COACH) loadTeam();
+  if (m.tx && m.tx.length) { h += '<div class="mt"><span class="label">Recent</span>'; m.tx.slice(0, 6).forEach(function (t) { var lbl = t.kind === 'no_spend' ? 'No-spend day' : esc(t.category) + (t.note ? ' · ' + esc(t.note) : ''); h += '<div class="tx"><div><div style="font-size:13px">' + lbl + '</div><div class="muted">' + dshort(t.spent_at) + '</div></div><span class="amt' + (t.kind === 'income' ? ' plus' : '') + '">' + (t.kind === 'income' ? '+' : '') + fmt(t.amount) + '</span></div>'; }); h += '</div>'; }
+  return h + '</div>';
 }
-function loadTeam() {
-  api('coach').then(function (d) { COACH = d; if (TAB === 'team') renderTeam(); }).catch(oops);
+function loadCoach() { api('coach').then(function (d) { COACH = d; if (TAB === 'team') renderCoach(); }).catch(oops); }
+function copyDigest() {
+  if (!COACH) return; var k = COACH.kpi;
+  var lines = ['Pocket Planner — Weekly Coach Digest (' + COACH.today + ')', ''];
+  lines.push('Members: ' + k.members + ' | Debt left: ' + fmt0(k.debt_total) + ' | Paid down: ' + fmt0(k.paid_down) + ' | Saved: ' + fmt0(k.saved) + ' | Need attention: ' + k.needs_attention, '');
+  COACH.members.forEach(function (m) {
+    lines.push('• ' + m.display_name + ' (' + m.share_tier + ')');
+    lines.push('   streak ' + m.streak + 'd, debt ' + (m.debt_paid_pct || 0).toFixed(0) + '% paid' + (m.debt_total !== undefined ? ' (' + fmt0(m.debt_total) + ' left)' : ''));
+    if (m.flex_budget !== undefined) lines.push('   this paycheck: ' + fmt0(m.spent_this_period) + ' of ' + fmt0(m.flex_budget) + ' (' + fmt0(m.flex_left) + ' left)');
+    if (m.flags && m.flags.length) lines.push('   FLAGS: ' + m.flags.join(', '));
+  });
+  var text = lines.join('\n');
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast('Digest copied to clipboard'); }, function () { fallbackCopy(text); });
+  else fallbackCopy(text);
 }
+function fallbackCopy(text) { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Digest copied'); } catch (e) { toast('Copy not supported'); } document.body.removeChild(ta); }
 
-/* ---------- more ---------- */
+/* ---------------- MORE ---------------- */
 function renderMore() {
   var h = '<div class="wrap">' + topbar();
   h += '<div class="card"><h2>' + esc(S.user.display_name) + '</h2><p class="muted">@' + esc(S.user.username) + ' · ' + (S.user.role === 'coach' ? 'Coach' : 'Member') + '</p></div>';
-
   if (S.user.role !== 'coach') {
     h += '<div class="card"><h2>What your coach can see</h2><p class="muted">You\'re in control. Change it any time.</p>';
-    var tiers = [
-      { v: 'full', t: 'Everything', d: 'Progress, budgets, and individual purchases.' },
-      { v: 'summary', t: 'Summary only', d: 'Totals and progress — never individual purchases.' },
-      { v: 'streaks', t: 'Streaks only', d: 'Just your logging streak and debt progress %.' },
-    ];
-    tiers.forEach(function (t) {
-      h += '<label class="radio"><input type="radio" name="tier" value="' + t.v + '"' + (S.user.share_tier === t.v ? ' checked' : '') + '><span><b>' + t.t + '</b><br><span class="muted">' + t.d + '</span></span></label>';
-    });
+    [['full', 'Everything', 'Progress, budgets, and individual purchases.'], ['summary', 'Summary only', 'Totals and progress — never individual purchases.'], ['streaks', 'Streaks only', 'Just your logging streak and debt progress %.']].forEach(function (t) { h += '<label class="radio"><input type="radio" name="tier" value="' + t[0] + '"' + (S.user.share_tier === t[0] ? ' checked' : '') + '><span><b>' + t[1] + '</b><br><span class="muted">' + t[2] + '</span></span></label>'; });
     h += '</div>';
+    h += '<div class="card"><h2>Redo my setup</h2><p class="muted">Walk through goals, import, budget and plan again.</p><button class="btn ghost" id="m_redo">Restart setup</button></div>';
   } else if (S.codes) {
-    h += '<div class="card"><h2>Invite your team</h2>';
-    h += '<p class="muted">Send them this page\'s link and the member code:</p>';
-    h += '<div class="mt"><span class="pill" style="font-size:15px">' + esc(S.codes.member_invite_code) + '</span></div>';
-    h += '<p class="muted mt">Coach code (keep private): <b>' + esc(S.codes.coach_invite_code) + '</b></p></div>';
+    h += '<div class="card"><h2>Invite your team</h2><p class="muted">Send them this link and the member code:</p><div class="mt"><span class="pill" style="font-size:15px">' + esc(S.codes.member_invite_code) + '</span></div><p class="muted mt">Coach code (keep private): <b>' + esc(S.codes.coach_invite_code) + '</b></p></div>';
   }
-
-  h += '<div class="card"><h2>Ground rules</h2><p class="muted">Manual entry only — never enter bank logins or card numbers here.<br>Log every purchase within a minute of buying. The habit is the whole game.<br>This is a planning tool, not professional financial advice.</p></div>';
-  h += '<button class="btn ghost" id="m_logout">Sign out</button>';
-  h += '<p class="muted center mt">A personal tool by RAIS Advisory</p>';
-  h += '</div>';
+  h += '<div class="card"><h2>Ground rules</h2><p class="muted">Manual entry and statement import only — never enter bank logins or card numbers here.<br>This is a planning tool, not professional financial advice.</p></div>';
+  h += '<button class="btn ghost" id="m_logout">Sign out</button><p class="muted center mt">A personal tool by RAIS Advisory</p></div>';
   q('view').innerHTML = h;
-
-  Array.prototype.forEach.call(document.querySelectorAll('input[name=tier]'), function (el) {
-    el.onchange = function () {
-      api('share', 'PUT', { share_tier: el.value }).then(function () { S.user.share_tier = el.value; toast('Sharing updated'); }).catch(oops);
-    };
-  });
-  q('m_logout').onclick = function () {
-    api('logout', 'POST').catch(function () {}).then(function () { setToken(''); S = null; COACH = null; TAB = 'home'; renderAuth(); });
-  };
+  Array.prototype.forEach.call(document.querySelectorAll('input[name=tier]'), function (el) { el.onchange = function () { api('share', 'PUT', { share_tier: el.value }).then(function () { S.user.share_tier = el.value; toast('Sharing updated'); }).catch(oops); }; });
+  if (q('m_redo')) q('m_redo').onclick = function () { setStep(2, function () { document.body.classList.add('flow'); q('tabbar').classList.add('hidden'); load(); }); };
+  q('m_logout').onclick = function () { api('logout', 'POST').catch(function () {}).then(function () { setToken(''); S = null; COACH = null; TAB = 'home'; renderAuth(); }); };
 }
 
-/* ---------- init ---------- */
+/* ---------------- INIT ---------------- */
 if (TOKEN) load(); else renderAuth();
 </script>
 </body>
