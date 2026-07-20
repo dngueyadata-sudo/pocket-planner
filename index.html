@@ -134,6 +134,17 @@ var ALL_SPEND = ['Groceries','Eating Out','Coffee','Gas','Auto','Rideshare','Ren
 var COMMON_SPEND = ['Groceries','Eating Out','Gas','Kids','Household','Entertainment','Coffee','Medical','Other'];
 var INCOME_CATS = ['Paycheck','Overtime','Side Gig','Refund','Gift','Other'];
 var GOAL_OPTS = ['Get current on my bills','Pay off my debt','Build an emergency fund','Save for something specific','Just understand where my money goes'];
+var ROADMAP_OPEN = null;
+var BABY_STEPS = [
+  { n: 1, kind: 'ef_starter', title: 'Save a $1,000 starter fund', desc: 'A small cushion so life\'s surprises don\'t become new debt.' },
+  { n: 2, kind: 'debt', title: 'Pay off all debt (except the house)', desc: 'Use the debt snowball — smallest balance first — until you\'re free.' },
+  { n: 3, kind: 'ef_full', title: 'Save 3–6 months of expenses', desc: 'A full emergency fund for real peace of mind.' },
+  { n: 4, kind: 'retire', title: 'Invest 15% for retirement', desc: 'Common vehicles: a 401(k) — especially up to any employer match — then an IRA or Roth IRA.' },
+  { n: 5, kind: 'college', title: 'Save for kids\' college', desc: 'If you have children and want to help with school costs.' },
+  { n: 6, kind: 'home', title: 'Pay off your home early', desc: 'Throw extra at the mortgage until you own your home outright.' },
+  { n: 7, kind: 'freedom', title: 'Build wealth & give', desc: 'Live and give generously. This is what financial freedom is for.' }
+];
+var STEP4_ACCOUNTS = ['401(k)', 'Roth IRA', 'Traditional IRA'];
 
 var CATMAP = [
  ['DOORDASH','Eating Out'],['UBER EATS','Eating Out'],['GRUBHUB','Eating Out'],['MCDONALD','Eating Out'],['CHICK-FIL','Eating Out'],['CHICKFILA','Eating Out'],['WENDY','Eating Out'],['BURGER KING','Eating Out'],['TACO BELL','Eating Out'],['CHIPOTLE','Eating Out'],['SUBWAY','Eating Out'],['PIZZA','Eating Out'],['DOMINO','Eating Out'],['PANERA','Eating Out'],['POPEYES','Eating Out'],['SONIC','Eating Out'],['ARBY','Eating Out'],['RESTAURANT','Eating Out'],['GRILL','Eating Out'],['DINER','Eating Out'],
@@ -215,6 +226,7 @@ function api(path, method, body) {
 }
 function oops(e) { toast(e.message || 'Something went wrong'); }
 
+var JOIN_HANDLED = false;
 function load() {
   return api('state').then(function (d) {
     S = d; document.body.classList.remove('auth'); document.body.classList.remove('flow');
@@ -222,6 +234,14 @@ function load() {
     var step = d.settings ? Number(d.settings.onboard_step) : 0;
     if (step >= 2 && step <= 8) { document.body.classList.add('flow'); q('tabbar').classList.add('hidden'); renderWizard(); return; }
     if (TAB === 'team') TAB = 'home';
+    if (!JOIN_HANDLED && PREFILL.coach_code && !d.user.coach_id) {
+      JOIN_HANDLED = true;
+      api('checkcode?code=' + encodeURIComponent(PREFILL.coach_code)).then(function (r) {
+        if (r.valid && confirm('Connect with coach ' + r.coach_name + '? They\'ll be able to see your progress (you choose how much).')) {
+          api('connectcoach', 'PUT', { code: PREFILL.coach_code }).then(function () { toast('Connected with ' + r.coach_name); return load(); }).catch(oops);
+        }
+      }).catch(function () {});
+    }
     renderShell(); render();
   }).catch(function (e) { if (e.status === 401) { setToken(''); renderAuth(); } else { oops(e); } });
 }
@@ -260,52 +280,38 @@ function renderAuth() {
   }
   if (AUTHROLE === 'coach') {
     var c = '<h2>Coach account</h2><p class="muted">Coaches guide ' + MEMBER_PL + ' and see only the Coach Hub. You\'ll get a code to invite your ' + MEMBER_PL + '.</p>';
-    c += '<span class="label">Coach access code</span><input id="s_master" autocapitalize="characters" placeholder="From RAIS Advisory">';
     c += '<span class="label">First name</span><input id="s_name"><span class="label">Pick a username</span><input id="s_user" autocapitalize="none">';
     c += '<span class="label">Pick a PIN (4-8 digits)</span><input id="s_pin" type="password" inputmode="numeric">';
+    c += '<span class="label">Email (optional)</span><input id="s_email" type="email" autocapitalize="none" placeholder="For account recovery">';
     c += '<button class="btn" id="s_go">Create coach account</button><p class="muted mt center"><button class="link" id="a_back">Back</button></p>';
     authWrap(c, 'Coaches only see the hub — never a ' + MEMBER + '\'s individual purchases unless they share them.');
     q('a_back').onclick = function () { AUTHROLE = null; renderAuth(); };
     q('s_go').onclick = function () {
-      api('signup', 'POST', { role: 'coach', master: val('s_master'), display_name: val('s_name'), username: val('s_user'), pin: val('s_pin') })
+      api('signup', 'POST', { role: 'coach', display_name: val('s_name'), username: val('s_user'), pin: val('s_pin'), email: val('s_email') })
         .then(function (d) { setToken(d.token); TAB = 'team'; toast('Welcome, coach ' + d.user.display_name + '!'); load(); }).catch(oops);
     };
     return;
   }
-  // member (Pathfinder)
-  var m = '<h2>Start your comeback</h2><p class="muted">You start with a coach in your corner. Enter your coach\'s code — or invite someone to be your coach.</p>';
-  m += '<span class="label">Coach code</span><input id="s_coach" autocapitalize="characters" placeholder="From your coach" value="' + esc(PREFILL.coach_code || '') + '"><div id="s_codemsg" class="muted" style="margin-top:4px"></div>';
-  m += '<p class="mt"><button class="link" id="s_invitecoach">I don\'t have a coach yet — invite one</button></p>';
-  m += '<div id="s_invitebox" class="' + (INVITECOACH ? '' : 'hidden') + '">' + inviteCoachBox() + '</div>';
+  // member (Pathfinder) — no coach required
+  var joining = PREFILL.coach_code ? '<div class="pill good" style="margin-bottom:6px">Joining coach code ' + esc(PREFILL.coach_code) + '</div>' : '';
+  var m = '<h2>Start your comeback</h2><p class="muted">Just you and your goals. You can add a coach anytime later — no coach needed to start.</p>' + joining;
   m += '<span class="label">First name</span><input id="s_name"><span class="label">Pick a username</span><input id="s_user" autocapitalize="none">';
   m += '<span class="label">Pick a PIN (4-8 digits)</span><input id="s_pin" type="password" inputmode="numeric">';
+  m += '<span class="label">Email or phone (optional)</span><input id="s_email" type="email" autocapitalize="none" placeholder="For account recovery">';
   m += '<button class="btn" id="s_go">Create my account</button><p class="muted mt center"><button class="link" id="a_back">Back</button></p>';
-  authWrap(m, 'A coach is required to start — it\'s how you stay accountable.');
-  q('a_back').onclick = function () { AUTHROLE = null; INVITECOACH = false; renderAuth(); };
-  q('s_invitecoach').onclick = function () { INVITECOACH = !INVITECOACH; renderAuth(); };
-  var codeChk = q('s_coach');
-  codeChk.addEventListener('blur', function () {
-    var code = codeChk.value.trim().toUpperCase(); var box = q('s_codemsg');
-    if (!code) { box.innerHTML = ''; return; }
-    api('checkcode?code=' + encodeURIComponent(code)).then(function (r) {
-      box.innerHTML = r.valid ? '<span class="good">✓ Coach: ' + esc(r.coach_name) + '</span>' : '<span class="warn">We couldn\'t find that coach code.</span>';
-    }).catch(function () {});
-  });
-  if (q('s_copyinvite')) q('s_copyinvite').onclick = function () { fallbackCopy(inviteCoachText()); };
+  authWrap(m, 'You choose if and when to add a coach.');
+  q('a_back').onclick = function () { AUTHROLE = null; renderAuth(); };
   q('s_go').onclick = function () {
-    api('signup', 'POST', { role: 'member', coach_code: val('s_coach'), display_name: val('s_name'), username: val('s_user'), pin: val('s_pin') })
-      .then(function (d) { setToken(d.token); toast('Welcome, ' + d.user.display_name + '!'); load(); }).catch(oops);
+    var contact = val('s_email');
+    var isPhone = /[0-9].*[0-9].*[0-9]/.test(contact) && contact.indexOf('@') === -1;
+    var body = { role: 'member', coach_code: PREFILL.coach_code || '', display_name: val('s_name'), username: val('s_user'), pin: val('s_pin') };
+    body[isPhone ? 'phone' : 'email'] = contact;
+    api('signup', 'POST', body).then(function (d) { setToken(d.token); toast('Welcome, ' + d.user.display_name + '!'); load(); }).catch(oops);
   };
-}
-function inviteCoachText() {
-  return 'Will you be my money coach? I\'m using Pocket Planner to get my finances back on track, and I need a coach to start. Create a free coach account here: ' + APP_URL + '?becoach=1 — then send me your coach code so I can join you. (You\'ll need a coach access code from RAIS Advisory: hello@raisadvisory.com)';
-}
-function inviteCoachBox() {
-  return '<div class="card" style="background:var(--gold-dim);border:0;margin:10px 0"><h3>Invite a coach</h3><p class="muted">Send this to a friend, family member, or advisor you trust. Once they set up as a coach, they\'ll give you a code to enter above.</p><textarea readonly style="min-height:120px;font-size:13px">' + esc(inviteCoachText()) + '</textarea><button class="btn ghost" id="s_copyinvite">Copy invite</button></div>';
 }
 
 /* ---------------- ONBOARDING WIZARD ---------------- */
-var WIZ_TITLES = { 2: 'Your goals', 3: 'Import statements', 4: 'Your debts', 5: 'Build your budget', 6: 'Your coach', 7: 'Debt payoff plan', 8: 'Savings goals' };
+var WIZ_TITLES = { 2: 'Your goals', 3: 'Import statements', 4: 'Your debts', 5: 'Build your budget', 6: 'Your coach', 7: 'Debt payoff plan', 8: 'Starter fund' };
 function wizStep() { return S.settings ? Number(S.settings.onboard_step) : 2; }
 function setStep(n, then) { return api('profile', 'PUT', { onboard_step: n }).then(function () { S.settings.onboard_step = n; if (then) then(); }); }
 function wizDots(step) {
@@ -350,16 +356,28 @@ function renderWizard() {
   } else if (step === 5) {
     renderBudgetBuilder(step);
   } else if (step === 6) {
-    var c = '<h2>Align with your coach</h2><p class="muted">Your coach can cheer you on and give feedback. <b>You decide what they see</b> — change it anytime later.</p>';
-    var tiers = [['full','Everything','Progress, budgets, and individual purchases.'],['summary','Summary only','Totals and progress — never individual purchases.'],['streaks','Streaks only','Just your logging streak and debt progress %.']];
-    tiers.forEach(function (t) { c += '<label class="radio"><input type="radio" name="wtier" value="' + t[0] + '"' + (S.user.share_tier === t[0] ? ' checked' : '') + '><span><b>' + t[1] + '</b><br><span class="muted">' + t[2] + '</span></span></label>'; });
-    c += '<button class="btn" id="w_next">Continue</button>';
+    var connected = !!S.coach_name;
+    var c = '<h2>Add a coach <span class="muted" style="font-family:var(--sans);font-size:14px">(optional)</span></h2>';
+    if (connected) {
+      c += '<p class="muted">You\'re connected with <b>' + esc(S.coach_name) + '</b>. <b>You decide what they see</b> — change it anytime.</p>';
+      var tiers = [['full','Everything','Progress, budgets, and individual purchases.'],['summary','Summary only','Totals and progress — never individual purchases.'],['streaks','Streaks only','Just your logging streak and debt progress %.']];
+      tiers.forEach(function (t) { c += '<label class="radio"><input type="radio" name="wtier" value="' + t[0] + '"' + (S.user.share_tier === t[0] ? ' checked' : '') + '><span><b>' + t[1] + '</b><br><span class="muted">' + t[2] + '</span></span></label>'; });
+      c += '<button class="btn" id="w_next">Continue</button>';
+    } else {
+      c += '<p class="muted">A coach can cheer you on and keep you accountable — but you don\'t need one to start. Have a code? Enter it. Otherwise, skip and add one anytime in Settings.</p>';
+      c += '<span class="label">Coach code</span><input id="w_coach" autocapitalize="characters" placeholder="From your coach"><div id="w_codemsg" class="muted" style="margin-top:4px"></div>';
+      c += '<button class="btn" id="w_connect">Connect coach</button><button class="btn ghost" id="w_next">Skip for now</button>';
+    }
     wizShell(step, c);
-    q('w_next').onclick = function () {
-      var sel = document.querySelector('input[name=wtier]:checked');
-      var tier = sel ? sel.value : 'summary';
-      api('share', 'PUT', { share_tier: tier }).then(function () { S.user.share_tier = tier; return setStep(7, function () { load(); }); }).catch(oops);
-    };
+    if (connected) {
+      q('w_next').onclick = function () { var sel = document.querySelector('input[name=wtier]:checked'); var tier = sel ? sel.value : 'summary'; api('share', 'PUT', { share_tier: tier }).then(function () { S.user.share_tier = tier; return setStep(7, function () { load(); }); }).catch(oops); };
+    } else {
+      q('w_connect').onclick = function () {
+        var code = val('w_coach'); if (!code) { toast('Enter a code, or tap Skip'); return; }
+        api('connectcoach', 'PUT', { code: code }).then(function (r) { toast('Connected with ' + r.coach + '!'); return load(); }).catch(oops);
+      };
+      q('w_next').onclick = function () { setStep(7, function () { load(); }); };
+    }
   } else if (step === 7) {
     renderPayoffPlanner(step);
   } else if (step === 8) {
@@ -415,10 +433,11 @@ function stageImport(text) {
   if (descI < 0) { for (var c = 0; c < headers.length; c++) if (c !== dateI && c !== amtI) { descI = c; break; } }
   var mode = (amtI < 0 && debitI >= 0) ? 'split' : 'single';
   if (amtI < 0 && mode === 'single') { for (var a = 0; a < headers.length; a++) if (a !== dateI && a !== descI && !isNaN(toNum(body[0] && body[0][a]))) { amtI = a; break; } }
-  IMPORT = { headers: headers, body: body, dateI: dateI, descI: descI, amtI: amtI, debitI: debitI, creditI: creditI, mode: mode, spendSign: 'neg' };
+  IMPORT = { headers: headers, body: body, dateI: dateI, descI: descI, amtI: amtI, debitI: debitI, creditI: creditI, mode: mode, spendSign: 'neg', overrides: {} };
   TAB = 'home';
   renderImportReview();
 }
+function normKey(desc) { return String(desc || '').trim().toUpperCase().replace(/\s+/g, ' ').replace(/[0-9#*]+/g, '').trim(); }
 function computeImport() {
   var I = IMPORT; var out = [];
   for (var r = 0; r < I.body.length; r++) {
@@ -437,7 +456,9 @@ function computeImport() {
     if (!iso) continue;
     var cat = categorize(desc, isCredit);
     if (cat.skip) { out.push({ skip: true }); continue; }
-    out.push({ spent_at: iso, note: desc.slice(0, 60), amount: amt, kind: cat.kind, category: cat.category });
+    var key = normKey(desc);
+    var category = (I.overrides[key] && cat.kind === 'spend') ? I.overrides[key] : cat.category;
+    out.push({ spent_at: iso, note: desc.slice(0, 60), amount: amt, kind: cat.kind, category: category, key: key });
   }
   return out;
 }
@@ -487,12 +508,32 @@ function renderImportReview() {
     h += '</div>';
   }
 
+  // group spend by merchant for review; unclear (Other) first
+  var groups = {};
+  spend.forEach(function (x) {
+    var g = groups[x.key] || (groups[x.key] = { key: x.key, note: x.note, count: 0, amount: 0, category: x.category });
+    g.count++; g.amount += x.amount; g.category = x.category;
+  });
+  var gList = Object.keys(groups).map(function (k) { return groups[k]; });
+  var unclear = gList.filter(function (g) { return g.category === 'Other'; }).sort(function (a, b) { return b.amount - a.amount; });
+  var clear = gList.filter(function (g) { return g.category !== 'Other'; }).sort(function (a, b) { return b.amount - a.amount; });
+
   if (kept.length) {
-    h += '<div class="card"><h3>Spot-check & fix categories</h3><p class="muted">First 30 shown. Change any that look off — the rest import as sorted.</p><div class="scroll">';
-    kept.slice(0, 30).forEach(function (x, idx) {
-      h += '<div class="improw"><div><div>' + esc(x.note || '(no description)') + '</div><div class="muted">' + dshort(x.spent_at) + (x.kind === 'income' ? ' · money in' : '') + '</div></div><div class="amt ' + (x.kind === 'income' ? 'plus' : '') + '">' + (x.kind === 'income' ? '+' : '') + fmt(x.amount) + '</div>' + catSelect('imc_' + idx, x.category, x.kind) + '</div>';
-    });
-    h += '</div></div>';
+    if (unclear.length) {
+      h += '<div class="card"><h3>Needs your input <span class="pill warn">' + unclear.length + '</span></h3><p class="muted">We auto-sorted the clear ones. Pick a category for these — each choice applies to every matching transaction.</p>';
+      h += '<button class="btn ghost small" id="im_ai" style="margin:0 0 8px">✨ Auto-sort these with AI</button><div class="scroll">';
+      unclear.forEach(function (g, idx) {
+        h += '<div class="improw"><div><div>' + esc(g.note || '(no description)') + '</div><div class="muted">' + g.count + '× · ' + fmt(g.amount) + '</div></div>' + catSelect('u_' + idx, 'Other', 'spend') + '</div>';
+      });
+      h += '</div></div>';
+    }
+    if (clear.length) {
+      h += '<div class="card"><h3>Auto-sorted <span class="muted" style="font-size:12px">(' + clear.length + ' merchants — tap to change)</span></h3><div class="scroll">';
+      clear.forEach(function (g, idx) {
+        h += '<div class="improw"><div><div>' + esc(g.note || '(no description)') + '</div><div class="muted">' + g.count + '× · ' + fmt(g.amount) + '</div></div>' + catSelect('c_' + idx, g.category, 'spend') + '</div>';
+      });
+      h += '</div></div>';
+    }
     h += '<button class="btn" id="im_go">Import ' + kept.length + ' transactions</button>';
   }
   h += '<div style="height:20px"></div></div>';
@@ -508,9 +549,20 @@ function renderImportReview() {
   if (q('im_pos')) q('im_pos').onclick = function () { I.spendSign = 'pos'; renderImportReview(); };
   if (q('im_debit')) q('im_debit').onchange = function () { I.debitI = +this.value; renderImportReview(); };
   if (q('im_credit')) q('im_credit').onchange = function () { I.creditI = +this.value; renderImportReview(); };
+  unclear.forEach(function (g, idx) { var el = q('u_' + idx); if (el) el.onchange = function () { I.overrides[g.key] = this.value; renderImportReview(); }; });
+  clear.forEach(function (g, idx) { var el = q('c_' + idx); if (el) el.onchange = function () { I.overrides[g.key] = this.value; renderImportReview(); }; });
+  if (q('im_ai')) q('im_ai').onclick = function () {
+    var descs = unclear.map(function (g) { return g.note; });
+    q('im_ai').disabled = true; q('im_ai').textContent = 'Thinking…';
+    api('categorize', 'POST', { items: descs }).then(function (r) {
+      if (!r.ai) { toast('AI sorting isn\'t switched on yet — pick categories below.'); q('im_ai').disabled = false; q('im_ai').textContent = '✨ Auto-sort these with AI'; return; }
+      var n = 0;
+      unclear.forEach(function (g) { var cat = r.map[g.note]; if (cat && cat !== 'Other') { I.overrides[g.key] = cat; n++; } });
+      toast(n ? 'AI sorted ' + n + ' merchants — review below' : 'AI wasn\'t sure — pick below'); renderImportReview();
+    }).catch(function (e) { q('im_ai').disabled = false; q('im_ai').textContent = '✨ Auto-sort these with AI'; oops(e); });
+  };
   if (q('im_go')) q('im_go').onclick = function () {
     var finalItems = computeImport().filter(function (x) { return !x.skip; });
-    kept.slice(0, 30).forEach(function (x, idx) { var sel = q('imc_' + idx); if (sel && finalItems[idx]) finalItems[idx].category = sel.value; });
     q('im_go').disabled = true; q('im_go').textContent = 'Importing…';
     api('import', 'POST', { rows: finalItems }).then(function (r) {
       IMPORT = null; toast('Imported ' + r.inserted + ' transactions');
@@ -662,22 +714,101 @@ function renderDebtsInner(step) {
 /* ---------------- GOALS (wizard step 8 + Goals tab) ---------------- */
 function renderGoalsInner(step) {
   var goals = S.goals || [];
-  var h = step ? '<h2>Set a savings goal</h2><p class="muted">Something to work toward — even $500 for emergencies changes how it feels. Optional, but powerful.</p>' : '';
+  var h = step ? '<h2>Your first goal: a starter fund</h2><p class="muted">Baby Step 1 is a $1,000 starter emergency fund — so life\'s surprises don\'t become new debt. Start it here (any amount counts). You\'ll see it on your Roadmap.</p>' : '';
   var inner = step ? '' : '';
   goals.forEach(function (g) {
     var pct = g.target_amount > 0 ? Math.min(100, g.saved_amount / g.target_amount * 100) : 0;
     inner += '<div style="padding:12px 0;border-top:1px solid var(--line)"><div class="spread"><b>' + esc(g.name) + '</b><b class="amt">' + fmt(g.saved_amount) + ' <span class="muted">/ ' + fmt(g.target_amount) + '</span></b></div><div class="bar"><i class="gd" style="width:' + pct + '%"></i></div><div class="spread"><span class="muted">' + pct.toFixed(0) + '%' + (g.target_date ? ' · by ' + dshort(g.target_date) : '') + '</span><span>' + (step ? '' : '<button class="btn small" data-addg="' + g.id + '">Add money</button> <button class="del" data-delg="' + g.id + '">&#10005;</button>') + '</span></div></div>';
   });
-  inner += '<div class="mt"><input id="g_name" placeholder="Goal (e.g. Emergency fund)"><div class="row mt"><input id="g_target" type="number" inputmode="decimal" placeholder="Target $"><input id="g_saved" type="number" inputmode="decimal" placeholder="Saved so far"></div><span class="label">Target date (optional)</span><input id="g_date" type="date"><button class="btn ghost" id="g_add">Add goal</button></div>';
+  inner += '<div class="mt"><input id="g_name" placeholder="Goal name" value="' + (step && !goals.length ? 'Starter Emergency Fund' : '') + '"><div class="row mt"><input id="g_target" type="number" inputmode="decimal" placeholder="Target $" value="' + (step && !goals.length ? '1000' : '') + '"><input id="g_saved" type="number" inputmode="decimal" placeholder="Saved so far"></div><span class="label">Target date (optional)</span><input id="g_date" type="date"><button class="btn ghost" id="g_add">Add goal</button></div>';
 
   if (step) { wizShell(step, h + inner + '<button class="btn" id="g_finish">Finish setup</button>'); }
   else { q('view').innerHTML = '<div class="wrap">' + topbar() + '<div class="card"><h2>Savings goals</h2>' + inner + '</div></div>'; }
 
   q('g_add').onclick = function () {
     if (!val('g_name')) { toast('Name your goal'); return; }
-    api('goals', 'POST', { name: val('g_name'), target_amount: parseFloat(val('g_target')) || 0, saved_amount: parseFloat(val('g_saved')) || 0, target_date: val('g_date') }).then(function () { toast('Goal added'); return load(); }).catch(oops);
+    api('goals', 'POST', { name: val('g_name'), target_amount: parseFloat(val('g_target')) || 0, saved_amount: parseFloat(val('g_saved')) || 0, target_date: val('g_date'), step: step ? 1 : 0 }).then(function () { toast('Goal added'); return load(); }).catch(oops);
   };
   if (q('g_finish')) q('g_finish').onclick = function () { setStep(9, function () { document.body.classList.remove('flow'); toast('You\'re all set!'); load(); }); };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-addg]'), function (el) { el.onclick = function () { var a = parseFloat(prompt('How much to add?') || ''); if (!(a > 0)) return; api('goals', 'PUT', { id: el.getAttribute('data-addg'), add: a }).then(function () { toast('Added ' + fmt(a)); return load(); }).catch(oops); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-delg]'), function (el) { el.onclick = function () { if (!confirm('Delete this goal?')) return; api('goals?id=' + el.getAttribute('data-delg'), 'DELETE').then(load).catch(oops); }; });
+}
+
+/* ---------------- ROADMAP (Dave Ramsey Baby Steps) ---------------- */
+function goalsForStep(n) { return (S.goals || []).filter(function (g) { return Number(g.step) === n; }); }
+function monthlyExpenses() {
+  var bills = (S.bills || []).reduce(function (s, b) { return s + Number(b.amount || 0); }, 0);
+  var flexMo = (Number(S.flex_budget_effective) || 0) * 26 / 12;
+  var est = bills + flexMo;
+  if (est <= 0 && S.settings) est = Number(S.settings.income_monthly) * 0.8;
+  return est;
+}
+function stepComplete(step, cur) {
+  if (step.kind === 'ef_starter') { var g = goalsForStep(1); return g.length && g.reduce(function (s, x) { return s + Number(x.saved_amount); }, 0) >= 1000; }
+  if (step.kind === 'debt') return (S.debt_start > 0 && S.debt_total <= 0);
+  if (step.kind === 'ef_full') { var t = monthlyExpenses() * 3; var g3 = goalsForStep(3); return t > 0 && g3.length && g3.reduce(function (s, x) { return s + Number(x.saved_amount); }, 0) >= t; }
+  return cur > step.n;
+}
+function goalBlock(n) {
+  var gs = goalsForStep(n); var h = '';
+  gs.forEach(function (g) {
+    var pct = g.target_amount > 0 ? Math.min(100, g.saved_amount / g.target_amount * 100) : 0;
+    h += '<div style="padding:8px 0;border-top:1px solid var(--line)"><div class="spread"><span style="font-size:14px">' + esc(g.name) + '</span><b class="amt">' + fmt(g.saved_amount) + (g.target_amount > 0 ? ' <span class="muted">/ ' + fmt(g.target_amount) + '</span>' : '') + '</b></div>';
+    if (g.target_amount > 0) h += '<div class="bar"><i class="gd" style="width:' + pct + '%"></i></div>';
+    h += '<div><button class="btn small" data-addg="' + g.id + '">Add money</button> <button class="del" data-delg="' + g.id + '">&#10005;</button></div></div>';
+  });
+  if (ROADMAP_OPEN === n) {
+    h += '<div class="mt"><input id="rg_name" placeholder="Name (e.g. ' + (n === 1 ? 'Starter fund' : n === 3 ? 'Emergency fund' : n === 5 ? 'College fund' : 'Goal') + ')"><div class="row mt"><input id="rg_target" type="number" inputmode="decimal" placeholder="Target $ (optional)"><input id="rg_saved" type="number" inputmode="decimal" placeholder="Saved so far"></div><button class="btn" data-rgsave="' + n + '">Save goal</button></div>';
+  } else {
+    h += '<button class="btn ghost small mt" data-rgopen="' + n + '">+ Add a goal here</button>';
+  }
+  return h;
+}
+function renderRoadmap() {
+  var st = S.settings || {}; var cur = Number(st.baby_step) || 1;
+  var income = Number(st.income_monthly) || 0; var monExp = monthlyExpenses();
+  var h = '<div class="wrap">' + topbar();
+  h += '<div class="card"><h2>Your Roadmap to Freedom</h2><p class="muted">Seven steps, in order — the proven Dave Ramsey path. Focus on one at a time. You\'re on <b>Step ' + cur + '</b>.</p></div>';
+
+  BABY_STEPS.forEach(function (s) {
+    var done = stepComplete(s, cur); var isCur = s.n === cur;
+    var badge = done ? '<span style="background:var(--good);color:#fff;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700">✓</span>'
+      : '<span style="background:' + (isCur ? 'var(--gold)' : 'var(--track)') + ';color:' + (isCur ? '#fff' : 'var(--sub)') + ';width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:var(--serif)">' + s.n + '</span>';
+    h += '<div class="card"' + (isCur ? ' style="border:1.5px solid var(--gold)"' : '') + '>';
+    h += '<div style="display:flex;gap:12px;align-items:flex-start">' + badge + '<div style="flex:1"><div class="spread"><b style="font-size:15px">' + s.title + '</b>' + (isCur ? '<span class="pill">You\'re here</span>' : done ? '<span class="pill good">Done</span>' : '') + '</div><p class="muted" style="margin-top:2px">' + s.desc + '</p></div></div>';
+    h += '<div style="margin-left:42px">';
+
+    if (s.kind === 'debt') {
+      if (S.debt_start > 0) {
+        h += '<div class="bar mt"><i style="width:' + S.debt_paid_pct + '%"></i></div><div class="spread"><span class="muted">' + S.debt_paid_pct.toFixed(0) + '% paid</span><b>' + fmt(S.debt_total) + ' left</b></div>';
+      } else h += '<p class="muted mt">Add your debts in the Debts tab to track this step.</p>';
+      h += '<button class="btn ghost small mt" id="rm_debts">Go to Debts</button>';
+    } else if (s.kind === 'retire') {
+      if (income > 0) h += '<div class="pill mt">Target: about ' + fmt0(income * 0.15) + '/mo (15% of income)</div>';
+      h += '<p class="muted mt">Track your retirement accounts here:</p>';
+      h += '<div class="chips">' + STEP4_ACCOUNTS.map(function (a) { return '<span class="chip" data-r4="' + esc(a) + '">+ ' + a + '</span>'; }).join('') + '</div>';
+      h += goalBlock(4);
+      h += '<p class="muted mt" style="font-size:12px">General education from the Dave Ramsey framework — not personalized investment advice. Talk to a licensed advisor about what\'s right for you, especially your 401(k) match and IRA choices.</p>';
+    } else if (s.kind === 'freedom') {
+      h += '<p class="muted mt">You\'ve done the hard work. Keep investing, give generously, and enjoy the freedom you built.</p>';
+    } else {
+      // ef_starter, ef_full, college, home — goal-backed
+      if (s.kind === 'ef_full' && monExp > 0) h += '<div class="pill mt">Suggested: ' + fmt0(monExp * 3) + '–' + fmt0(monExp * 6) + ' (3–6 months of expenses)</div>';
+      if (s.kind === 'ef_starter') h += '<div class="pill mt">Target: $1,000</div>';
+      h += goalBlock(s.n);
+    }
+
+    if (!isCur && !done) h += '<button class="link mt" data-setstep="' + s.n + '" style="display:block">Set this as my current step</button>';
+    if (s.kind === 'freedom' && !done) h += '<button class="btn ghost small mt" data-setstep="7">I\'ve reached freedom</button>';
+    h += '</div></div>';
+  });
+  h += '</div>'; q('view').innerHTML = h;
+
+  if (q('rm_debts')) q('rm_debts').onclick = function () { TAB = 'debts'; renderShell(); render(); };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-setstep]'), function (el) { el.onclick = function () { api('settings', 'PUT', { baby_step: +el.getAttribute('data-setstep') }).then(function () { toast('Roadmap updated'); return load(); }).catch(oops); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-rgopen]'), function (el) { el.onclick = function () { ROADMAP_OPEN = +el.getAttribute('data-rgopen'); renderRoadmap(); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-rgsave]'), function (el) { el.onclick = function () { var n = +el.getAttribute('data-rgsave'); if (!val('rg_name')) { toast('Name your goal'); return; } api('goals', 'POST', { name: val('rg_name'), target_amount: parseFloat(val('rg_target')) || 0, saved_amount: parseFloat(val('rg_saved')) || 0, step: n }).then(function () { ROADMAP_OPEN = null; toast('Goal added'); return load(); }).catch(oops); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-r4]'), function (el) { el.onclick = function () { api('goals', 'POST', { name: el.getAttribute('data-r4'), target_amount: 0, saved_amount: 0, step: 4 }).then(function () { toast('Added ' + el.getAttribute('data-r4')); return load(); }).catch(oops); }; });
   Array.prototype.forEach.call(document.querySelectorAll('[data-addg]'), function (el) { el.onclick = function () { var a = parseFloat(prompt('How much to add?') || ''); if (!(a > 0)) return; api('goals', 'PUT', { id: el.getAttribute('data-addg'), add: a }).then(function () { toast('Added ' + fmt(a)); return load(); }).catch(oops); }; });
   Array.prototype.forEach.call(document.querySelectorAll('[data-delg]'), function (el) { el.onclick = function () { if (!confirm('Delete this goal?')) return; api('goals?id=' + el.getAttribute('data-delg'), 'DELETE').then(load).catch(oops); }; });
 }
@@ -686,7 +817,7 @@ function renderGoalsInner(step) {
 function renderShell() {
   var tabs;
   if (S.user.role === 'coach') { tabs = [{ t: 'team', ic: IC.team, n: 'Hub' }, { t: 'more', ic: IC.more, n: 'More' }]; }
-  else { tabs = [{ t: 'home', ic: IC.home, n: 'Home' }, { t: 'plan', ic: IC.plan, n: 'Plan' }, { t: 'debts', ic: IC.debts, n: 'Debts' }, { t: 'goals', ic: IC.goals, n: 'Goals' }, { t: 'more', ic: IC.more, n: 'More' }]; }
+  else { tabs = [{ t: 'home', ic: IC.home, n: 'Home' }, { t: 'plan', ic: IC.plan, n: 'Plan' }, { t: 'debts', ic: IC.debts, n: 'Debts' }, { t: 'roadmap', ic: IC.goals, n: 'Roadmap' }, { t: 'more', ic: IC.more, n: 'More' }]; }
   var h = '';
   tabs.forEach(function (t) { h += '<div class="tab' + (TAB === t.t ? ' on' : '') + '" data-t="' + t.t + '">' + t.ic + t.n + '</div>'; });
   var bar = q('tabbar'); bar.innerHTML = h; bar.classList.remove('hidden');
@@ -696,7 +827,7 @@ function render() {
   if (TAB === 'home') renderHome();
   else if (TAB === 'plan') renderPlan();
   else if (TAB === 'debts') renderDebtsInner(0);
-  else if (TAB === 'goals') renderGoalsInner(0);
+  else if (TAB === 'roadmap') renderRoadmap();
   else if (TAB === 'team') renderCoach();
   else renderMore();
   window.scrollTo(0, 0);
@@ -936,18 +1067,32 @@ function renderMore() {
   var h = '<div class="wrap">' + topbar();
   h += '<div class="card"><h2>' + esc(S.user.display_name) + '</h2><p class="muted">@' + esc(S.user.username) + ' · ' + (S.user.role === 'coach' ? 'Coach' : MEMBER) + '</p></div>';
   if (S.user.role !== 'coach') {
+    // coach connection
+    if (S.coach_name) {
+      h += '<div class="card"><h2>Your coach</h2><p class="muted">You\'re connected with <b>' + esc(S.coach_name) + '</b>.</p><button class="link mt" id="m_disconnect" style="display:block">Disconnect coach</button></div>';
+    } else {
+      h += '<div class="card"><h2>Add a coach</h2><p class="muted">Optional. A coach can see your progress and cheer you on. Enter a code, or send an invite so someone can be your coach.</p>';
+      h += '<span class="label">Coach code</span><input id="m_ccode" autocapitalize="characters" placeholder="From your coach"><button class="btn" id="m_connect">Connect</button>';
+      h += '<button class="btn ghost" id="m_invitec">Invite someone to be my coach</button></div>';
+    }
     h += '<div class="card"><h2>What your coach can see</h2><p class="muted">You\'re in control. Change it any time.</p>';
     [['full', 'Everything', 'Progress, budgets, and individual purchases.'], ['summary', 'Summary only', 'Totals and progress — never individual purchases.'], ['streaks', 'Streaks only', 'Just your logging streak and debt progress %.']].forEach(function (t) { h += '<label class="radio"><input type="radio" name="tier" value="' + t[0] + '"' + (S.user.share_tier === t[0] ? ' checked' : '') + '><span><b>' + t[1] + '</b><br><span class="muted">' + t[2] + '</span></span></label>'; });
     h += '</div>';
+    h += '<div class="card"><h2>Account & recovery</h2><span class="label">Email</span><input id="m_email" type="email" autocapitalize="none" value="' + esc(S.user.email || '') + '" placeholder="you@example.com"><span class="label">Phone</span><input id="m_phone" type="tel" value="' + esc(S.user.phone || '') + '" placeholder="(555) 555-5555"><button class="btn ghost" id="m_savecontact">Save</button><p class="muted mt">Used to help recover your account if you forget your PIN.</p></div>';
     h += '<div class="card"><h2>Redo my setup</h2><p class="muted">Walk through goals, import, budget and plan again.</p><button class="btn ghost" id="m_redo">Restart setup</button></div>';
   } else {
     var code = S.user.invite_code || '';
     h += '<div class="card"><h2>Invite your ' + MEMBER_PL + '</h2><p class="muted">Share this code or link so ' + MEMBER_PL + ' can join you:</p><div class="mt"><span class="pill" style="font-size:16px;letter-spacing:2px">' + esc(code) + '</span></div><button class="btn ghost mt" id="m_copylink">Copy invite link</button></div>';
+    h += '<div class="card"><h2>Account & recovery</h2><span class="label">Email</span><input id="m_email" type="email" autocapitalize="none" value="' + esc(S.user.email || '') + '" placeholder="you@example.com"><button class="btn ghost" id="m_savecontact">Save</button></div>';
   }
   h += '<div class="card"><h2>Ground rules</h2><p class="muted">Manual entry and statement import only — never enter bank logins or card numbers here.<br>This is a planning tool, not professional financial advice.</p></div>';
   h += '<button class="btn ghost" id="m_logout">Sign out</button><p class="muted center mt">A personal tool by RAIS Advisory</p></div>';
   q('view').innerHTML = h;
   Array.prototype.forEach.call(document.querySelectorAll('input[name=tier]'), function (el) { el.onchange = function () { api('share', 'PUT', { share_tier: el.value }).then(function () { S.user.share_tier = el.value; toast('Sharing updated'); }).catch(oops); }; });
+  if (q('m_connect')) q('m_connect').onclick = function () { if (!val('m_ccode')) { toast('Enter a coach code'); return; } api('connectcoach', 'PUT', { code: val('m_ccode') }).then(function (r) { toast('Connected with ' + r.coach); return load(); }).catch(oops); };
+  if (q('m_disconnect')) q('m_disconnect').onclick = function () { if (!confirm('Disconnect from your coach?')) return; api('connectcoach', 'PUT', { disconnect: true }).then(function () { toast('Disconnected'); return load(); }).catch(oops); };
+  if (q('m_invitec')) q('m_invitec').onclick = function () { fallbackCopy('Will you be my money coach? I\'m using Pocket Planner to get my finances back on track. Create a free coach account here: ' + APP_URL + '?becoach=1 — then send me your coach code so I can connect.'); };
+  if (q('m_savecontact')) q('m_savecontact').onclick = function () { api('profile', 'PUT', { email: val('m_email'), phone: q('m_phone') ? val('m_phone') : undefined }).then(function () { S.user.email = val('m_email'); toast('Saved'); }).catch(oops); };
   if (q('m_redo')) q('m_redo').onclick = function () { setStep(2, function () { document.body.classList.add('flow'); q('tabbar').classList.add('hidden'); load(); }); };
   if (q('m_copylink')) q('m_copylink').onclick = function () { fallbackCopy('Join me on Pocket Planner to get your finances back on track: ' + APP_URL + '?join=' + (S.user.invite_code || '')); };
   q('m_logout').onclick = function () { api('logout', 'POST').catch(function () {}).then(function () { setToken(''); S = null; COACH = null; TAB = 'home'; AUTHMODE = 'login'; AUTHROLE = null; renderAuth(); }); };
