@@ -779,13 +779,26 @@ function renderPayoffPlanner(step) {
 }
 
 /* ---------------- BILLS (wizard step 4 + Plan hub) ---------------- */
+function normBillName(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function billAlreadyExists(name, bills) {
+  var n = normBillName(name); if (!n) return false;
+  var words = n.split(' ').filter(function (w) { return w.length >= 4; });
+  return (bills || []).some(function (b) {
+    var bn = normBillName(b.name); if (!bn) return false;
+    if (bn.indexOf(n) > -1 || n.indexOf(bn) > -1) return true;
+    var bwords = bn.split(' ').filter(function (w) { return w.length >= 4; });
+    return words.some(function (w) { return bwords.indexOf(w) > -1; });
+  });
+}
 function renderBillsInner(step) {
   var bills = S.bills || [];
+  var fresh = DETECTED_BILLS.filter(function (b) { return !billAlreadyExists(b.name, bills); });
+  DETECTED_BILLS = fresh; // prune stale duplicates permanently once we've seen the current bill list
   var h = step ? '<h2>Your monthly bills</h2><p class="muted">Rent, car, phone, insurance, childcare — the fixed costs that hit every month.</p>' : '';
   var inner = '';
-  if (DETECTED_BILLS.length) {
-    inner += '<div class="card" style="background:var(--gold-dim);border:0;margin-bottom:14px"><h3>We found ' + DETECTED_BILLS.length + ' recurring charge' + (DETECTED_BILLS.length === 1 ? '' : 's') + '</h3><p class="muted">From your statements. Uncheck any that aren\'t really a monthly bill.</p>';
-    DETECTED_BILLS.forEach(function (b, idx) {
+  if (fresh.length) {
+    inner += '<div class="card" style="background:var(--gold-dim);border:0;margin-bottom:14px"><h3>We found ' + fresh.length + ' recurring charge' + (fresh.length === 1 ? '' : 's') + '</h3><p class="muted">From your statements. Uncheck any that aren\'t really a monthly bill.</p>';
+    fresh.forEach(function (b, idx) {
       inner += '<label class="radio" style="border-top:1px solid rgba(0,0,0,.06)"><input type="checkbox" id="db_' + idx + '" checked><span><b>' + esc(b.name) + '</b> · ' + fmt(b.amount) + '/mo<br><span class="muted">' + esc(b.category) + ' · seen ' + b.months + ' months</span></span></label>';
     });
     inner += '<button class="btn ghost mt" id="db_add">Add selected as bills</button></div>';
