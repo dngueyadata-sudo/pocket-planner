@@ -118,7 +118,7 @@ body.auth .card { border: 0; }
 var API = 'https://txrfewxihlqrpoatelvn.supabase.co/functions/v1/app';
 var TOKEN = localStorage.getItem('pp_token') || '';
 var S = null, COACH = null, TAB = 'home', AUTHMODE = 'login', AUTHROLE = null, INVITECOACH = false;
-var QL = { kind: 'spend', cat: 'Groceries' };
+var QL = { kind: 'spend', cat: 'Groceries', amt: '', note: '' };
 var COACHFILTER = 'all', COACHSEARCH = '';
 var IMPORT = null; // parsed import staging
 var BUDGET_GUESS_SKIPPED = false;
@@ -1056,12 +1056,12 @@ function renderHome() {
     }
   }
   h += '<div class="card"><h2>Quick log</h2><div class="seg"><button id="k_spend" class="' + (QL.kind === 'spend' ? 'on' : '') + '">Spent</button><button id="k_income" class="' + (QL.kind === 'income' ? 'on' : '') + '">Earned extra</button></div>';
-  h += '<input id="ql_amt" type="number" inputmode="decimal" placeholder="$ amount" step="0.01" min="0">';
+  h += '<input id="ql_amt" type="number" inputmode="decimal" placeholder="$ amount" step="0.01" min="0" value="' + esc(QL.amt) + '">';
   var chips = QL.kind === 'spend' ? COMMON_SPEND : INCOME_CATS;
   if (chips.indexOf(QL.cat) === -1) QL.cat = chips[0];
   h += '<div class="chips">'; chips.forEach(function (c) { h += '<span class="chip' + (QL.cat === c ? ' on' : '') + '" data-cat="' + esc(c) + '">' + c + '</span>'; }); h += '</div>';
   if (QL.kind === 'spend') h += '<select id="ql_more"><option value="">More categories…</option>' + ALL_SPEND.filter(function (c) { return COMMON_SPEND.indexOf(c) === -1; }).map(function (c) { return '<option' + (QL.cat === c ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select>';
-  h += '<input id="ql_note" class="mt" placeholder="Note (optional)"><button class="btn" id="ql_go">Log it</button>';
+  h += '<input id="ql_note" class="mt" placeholder="Note (optional)" value="' + esc(QL.note) + '"><button class="btn" id="ql_go">Log it</button>';
   var todayLogged = (S.tx || []).some(function (t) { return t.spent_at === S.today; });
   if (!todayLogged) h += '<button class="btn ghost" id="ql_nospend">Mark today a no-spend day</button>';
   if (S.extra_income_month > 0) h += '<p class="muted mt">Extra earned this month: <b class="good">' + fmt(S.extra_income_month) + '</b>.</p>';
@@ -1078,13 +1078,15 @@ function renderHome() {
   }
   h += '</div>'; q('view').innerHTML = h;
   if (q('go_plan')) q('go_plan').onclick = function () { TAB = 'plan'; renderShell(); render(); };
+  q('ql_amt').oninput = function () { QL.amt = this.value; };
+  q('ql_note').oninput = function () { QL.note = this.value; };
   q('k_spend').onclick = function () { QL.kind = 'spend'; renderHome(); };
   q('k_income').onclick = function () { QL.kind = 'income'; renderHome(); };
   Array.prototype.forEach.call(document.querySelectorAll('[data-cat]'), function (el) { el.onclick = function () { QL.cat = el.getAttribute('data-cat'); renderHome(); }; });
   if (q('ql_more')) q('ql_more').onchange = function () { if (this.value) { QL.cat = this.value; renderHome(); } };
   q('ql_go').onclick = function () {
     var amt = parseFloat(val('ql_amt')); if (!(amt > 0)) { toast('Enter an amount first'); return; }
-    api('tx', 'POST', { amount: amt, category: QL.cat, note: val('ql_note'), kind: QL.kind }).then(function () { toast(QL.kind === 'income' ? 'Extra income logged' : 'Logged'); return load(); }).catch(oops);
+    api('tx', 'POST', { amount: amt, category: QL.cat, note: val('ql_note'), kind: QL.kind }).then(function () { QL.amt = ''; QL.note = ''; toast(QL.kind === 'income' ? 'Extra income logged' : 'Logged'); return load(); }).catch(oops);
   };
   if (q('ql_nospend')) q('ql_nospend').onclick = function () { api('tx', 'POST', { kind: 'no_spend', category: 'No-Spend' }).then(function () { toast('No-spend day recorded'); return load(); }).catch(oops); };
   Array.prototype.forEach.call(document.querySelectorAll('[data-deltx]'), function (el) { el.onclick = function () { if (!confirm('Delete this entry?')) return; api('tx?id=' + el.getAttribute('data-deltx'), 'DELETE').then(load).catch(oops); }; });
