@@ -123,11 +123,12 @@ var COACHFILTER = 'all', COACHSEARCH = '';
 var IMPORT = null; // parsed import staging
 var MEMBER = 'Pathfinder', MEMBER_PL = 'Pathfinders';
 var APP_URL = location.origin + location.pathname.replace(/\/?$/, '/');
-var PREFILL = { coach_code: '', role: null };
+var PREFILL = { coach_code: '', role: null, reset: '' };
 (function () {
   var p = new URLSearchParams(location.search);
   if (p.get('join')) { PREFILL.coach_code = p.get('join').toUpperCase(); PREFILL.role = 'member'; }
   if (p.get('becoach') === '1' || p.get('coach') === '1') PREFILL.role = 'coach';
+  if (p.get('reset')) PREFILL.reset = p.get('reset');
 })();
 
 var ALL_SPEND = ['Groceries','Eating Out','Coffee','Gas','Auto','Rideshare','Rent/Mortgage','Utilities','Phone','Internet','Subscriptions','Insurance','Kids','Childcare','School','Medical','Pharmacy','Personal Care','Clothing','Household','Home Improvement','Entertainment','Travel','Gifts','Pets','Fitness','Giving','Fees','Cash/ATM','Other'];
@@ -256,12 +257,42 @@ function authWrap(inner, foot) {
 function renderAuth() {
   document.body.classList.add('auth'); document.body.classList.remove('flow');
   q('tabbar').classList.add('hidden');
+  if (PREFILL.reset || AUTHMODE === 'reset') {
+    var rs = '<h2>Set a new PIN</h2><p class="muted">Almost done — choose a new 4-8 digit PIN.</p>';
+    rs += '<span class="label">New PIN</span><input id="rs_pin" type="password" inputmode="numeric"><span class="label">Confirm PIN</span><input id="rs_pin2" type="password" inputmode="numeric">';
+    rs += '<button class="btn" id="rs_go">Save new PIN</button>';
+    authWrap(rs);
+    q('rs_go').onclick = function () {
+      if (val('rs_pin') !== val('rs_pin2')) { toast('PINs don\'t match'); return; }
+      api('reset', 'POST', { token: PREFILL.reset, pin: val('rs_pin') }).then(function () { PREFILL.reset = ''; AUTHMODE = 'login'; if (history.replaceState) history.replaceState(null, '', location.pathname); toast('PIN updated — sign in'); renderAuth(); }).catch(oops);
+    };
+    return;
+  }
+  if (AUTHMODE === 'forgot') {
+    var f = '<h2>Forgot your PIN?</h2><p class="muted">Enter your username or email. If we have an email on file, we\'ll send a reset link.</p>';
+    f += '<span class="label">Username or email</span><input id="fg_id" autocapitalize="none">';
+    f += '<button class="btn" id="fg_go">Send reset link</button><p class="muted mt center"><button class="link" id="a_switch">Back to sign in</button></p>';
+    authWrap(f);
+    q('a_switch').onclick = function () { AUTHMODE = 'login'; renderAuth(); };
+    q('fg_go').onclick = function () {
+      if (!val('fg_id')) { toast('Enter your username or email'); return; }
+      api('forgot', 'POST', { identifier: val('fg_id') }).then(function (r) {
+        var msg = r.emailed ? 'Reset link sent — check your email.' : (r.found && !r.has_email ? 'No email is on file for that account. Ask your coach, or sign up support.' : 'If we have an email on file, a reset link is on its way.');
+        authWrap('<h2>Check your email</h2><p class="muted">' + msg + '</p><button class="btn ghost" id="a_switch2">Back to sign in</button>');
+        q('a_switch2').onclick = function () { AUTHMODE = 'login'; renderAuth(); };
+      }).catch(oops);
+    };
+    return;
+  }
   if (AUTHMODE === 'login') {
     var l = '<h2>Sign in</h2><span class="label">Username</span><input id="a_user" autocapitalize="none" autocomplete="username">';
     l += '<span class="label">PIN</span><input id="a_pin" type="password" inputmode="numeric" autocomplete="current-password">';
-    l += '<button class="btn" id="a_go">Sign in</button><p class="muted mt center">New here? <button class="link" id="a_switch">Create your account</button></p>';
+    l += '<button class="btn" id="a_go">Sign in</button>';
+    l += '<p class="muted mt center"><button class="link" id="a_forgot">Forgot PIN?</button></p>';
+    l += '<p class="muted center">New here? <button class="link" id="a_switch">Create your account</button></p>';
     authWrap(l);
     q('a_switch').onclick = function () { AUTHMODE = 'signup'; AUTHROLE = PREFILL.role; renderAuth(); };
+    q('a_forgot').onclick = function () { AUTHMODE = 'forgot'; renderAuth(); };
     q('a_go').onclick = function () { api('login', 'POST', { username: val('a_user'), pin: val('a_pin') }).then(function (d) { setToken(d.token); load(); }).catch(oops); };
     q('a_pin').addEventListener('keydown', function (e) { if (e.key === 'Enter') q('a_go').click(); });
     return;
@@ -1099,7 +1130,8 @@ function renderMore() {
 }
 
 /* ---------------- INIT ---------------- */
-if (TOKEN) { load(); }
+if (PREFILL.reset) { setToken(''); renderAuth(); }
+else if (TOKEN) { load(); }
 else { if (PREFILL.role) { AUTHMODE = 'signup'; AUTHROLE = PREFILL.role; } renderAuth(); }
 </script>
 </body>
